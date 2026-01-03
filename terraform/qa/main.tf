@@ -1,16 +1,36 @@
-resource "aws_vpc" "this" {
+module "vpc" {
+  source = "../modules/vpc"
+
+  name       = "qa-vpc"
   cidr_block = var.vpc_cidr
-  tags = {
-    Name = "vpc-${var.environment}"
-  }
 }
 
-resource "aws_subnet" "public" {
-  vpc_id     = aws_vpc.this.id
-  cidr_block = "10.0.1.0/24"
+module "ecr" {
+  source = "../modules/ecr"
+
+  repository_name = "qa-base-service"
 }
 
-resource "aws_subnet" "private" {
-  vpc_id     = aws_vpc.this.id
-  cidr_block = "10.0.2.0/24"
+module "alb" {
+  source = "../modules/alb"
+
+  vpc_id         = module.vpc.vpc_id
+  public_subnets = module.vpc.public_subnets
+  alb_sg         = module.vpc.alb_sg
+}
+
+module "asg" {
+  source = "../modules/asg"
+
+  private_subnets  = module.vpc.private_subnets
+  alb_target_group = module.alb.target_group_arn
+  instance_type    = var.instance_type
+}
+
+module "bastion" {
+  source = "../modules/bastion"
+
+  public_subnet = module.vpc.public_subnets[0]
+  ami_id        = var.bastion_ami_id
+  key_name      = var.bastion_key_name
 }

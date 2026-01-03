@@ -9,3 +9,11 @@ variable "vpc_cidr" {
 variable "instance_type" {
   type = string
 }
+
+variable "bastion_ami_id" {
+  type = string
+}
+
+variable "bastion_key_name" {
+  type = string
+}
