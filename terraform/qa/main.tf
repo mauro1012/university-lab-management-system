@@ -30,7 +30,8 @@ module "asg" {
 module "bastion" {
   source = "../modules/bastion"
 
-  public_subnet = module.vpc.public_subnets[0]
-  ami_id        = var.bastion_ami_id
-  key_name      = var.bastion_key_name
+  public_subnet     = module.vpc.public_subnets[0]
+  ami_id            = var.bastion_ami_id
+  key_name          = var.bastion_key_name
 }
+
