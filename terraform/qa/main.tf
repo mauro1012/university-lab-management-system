@@ -16,7 +16,7 @@ module "alb" {
 
   vpc_id         = module.vpc.vpc_id
   public_subnets = module.vpc.public_subnets
-  alb_sg         = module.vpc.alb_sg
+  
 }
 
 module "asg" {
