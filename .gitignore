@@ -1,0 +1,17 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+
+# Terraform bootstrap state local (solo mientras migras a S3)
+terraform/bootstrap/terraform.tfstate
+
+# SSH keys
+*.pem
+*.pub
+
+# OS / Editor
+.DS_Store
+.vscode/
