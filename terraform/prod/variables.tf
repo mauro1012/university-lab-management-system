@@ -1,11 +1,14 @@
 variable "environment" {
-  type = string
+  description = "Environment name (prod)"
+  type        = string
 }
 
 variable "vpc_cidr" {
-  type = string
+  description = "CIDR block for the VPC"
+  type        = string
 }
 
 variable "instance_type" {
-  type = string
+  description = "Default EC2 instance type"
+  type        = string
 }
