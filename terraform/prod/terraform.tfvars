@@ -1,3 +1,4 @@
-environment   = "prod"
-vpc_cidr      = "10.1.0.0/16"
+vpc_cidr     = "10.1.0.0/16"
 instance_type = "t3.medium"
+ami_id        = "ami-0abcdef1234567890"
+key_name      = "prod-keypair"
