@@ -13,3 +13,8 @@ variable "ami_id" {
 variable "key_name" {
   type = string
 }
+
+variable "bastion_key_name" {
+  description = "SSH key for bastion"
+  type        = string
+}

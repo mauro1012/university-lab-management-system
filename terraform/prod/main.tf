@@ -24,6 +24,8 @@ module "bastion" {
   source = "../modules/bastion"
 
   public_subnet = module.vpc.public_subnets[0]
-  ami_id        = var.ami_id
-  key_name      = var.key_name
+  key_name      = var.bastion_key_name
+  instance_type = "t3.micro"
+  environment   = "prod"
 }
+
