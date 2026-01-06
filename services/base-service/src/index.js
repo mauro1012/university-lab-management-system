@@ -8,7 +8,7 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("Hello from Base Service - QA is working ");
+  res.send("no tstatus ");
 });
 
 app.listen(PORT, () => {
