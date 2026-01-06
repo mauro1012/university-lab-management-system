@@ -1,11 +1,11 @@
 output "vpc_id" {
-  value = aws_vpc.this.id
+  value = module.vpc.vpc_id
 }
 
-output "public_subnets" {
-  value = aws_subnet.public[*].id
+output "alb_dns_name" {
+  value = module.alb.alb_dns_name
 }
 
-output "private_subnets" {
-  value = aws_subnet.private[*].id
+output "bastion_public_ip" {
+  value = module.bastion.public_ip
 }
