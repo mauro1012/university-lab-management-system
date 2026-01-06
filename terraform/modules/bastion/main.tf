@@ -1,10 +1,22 @@
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+}
+
 resource "aws_instance" "this" {
-  ami           = var.ami_id
-  instance_type = "t3.micro"
-  subnet_id     = var.public_subnet
-  key_name      = var.key_name
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = var.instance_type
+  subnet_id              = var.public_subnet
+  key_name               = var.key_name
+  associate_public_ip_address = true
 
   tags = {
-    Name = "qa-bastion"
+    Name        = "bastion-${var.environment}"
+    Environment = var.environment
   }
 }
