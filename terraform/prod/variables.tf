@@ -1,19 +1,15 @@
 variable "vpc_cidr" {
-  type        = string
-  description = "CIDR block for prod VPC"
+  type = string
 }
 
 variable "instance_type" {
-  type        = string
-  description = "EC2 instance type"
+  type = string
 }
 
 variable "ami_id" {
-  type        = string
-  description = "AMI for bastion host"
+  type = string
 }
 
 variable "key_name" {
-  type        = string
-  description = "SSH key name for bastion"
+  type = string
 }
