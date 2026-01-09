@@ -20,12 +20,4 @@ module "asg" {
   instance_type    = var.instance_type
 }
 
-module "bastion" {
-  source = "../modules/bastion"
-
-  public_subnet = module.vpc.public_subnets[0]
-  key_name      = var.bastion_key_name
-  instance_type = "t3.micro"
-  environment   = "prod"
-}
 

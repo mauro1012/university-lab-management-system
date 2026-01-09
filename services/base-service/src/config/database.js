@@ -1,11 +1,13 @@
 const { Pool } = require("pg");
 
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL is not defined");
+  process.exit(1);
+}
+
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: 5432
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
 });
 
 module.exports = pool;

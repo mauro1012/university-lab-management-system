@@ -1,8 +1,9 @@
 variable "vpc_id" {
-  type = string
+  description = "VPC ID"
+  type        = string
 }
 
 variable "public_subnets" {
-  type = list(string)
+  description = "Public subnets for ALB"
+  type        = list(string)
 }
-
