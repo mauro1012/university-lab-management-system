@@ -1,14 +1,29 @@
+############################
+# Security Group - ASG
+############################
 resource "aws_security_group" "asg" {
   name   = "qa-asg-sg"
   vpc_id = var.vpc_id
 
+  # App traffic ONLY from ALB
   ingress {
+    description     = "App traffic from ALB"
     from_port       = 8080
     to_port         = 8080
     protocol        = "tcp"
     security_groups = [var.alb_security_group_id]
   }
 
+  # SSH ONLY from Bastion
+  ingress {
+    description     = "SSH only from Bastion"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [var.bastion_security_group_id]
+  }
+
+  # Outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -17,11 +32,15 @@ resource "aws_security_group" "asg" {
   }
 }
 
-
+############################
+# Launch Template
+############################
 resource "aws_launch_template" "this" {
   name_prefix   = "qa-base-service-"
   instance_type = var.instance_type
   image_id      = data.aws_ami.amazon_linux.id
+
+  key_name = var.key_name
 
   vpc_security_group_ids = [
     aws_security_group.asg.id
@@ -56,6 +75,9 @@ EOF
   }
 }
 
+############################
+# Auto Scaling Group
+############################
 resource "aws_autoscaling_group" "this" {
   name = "qa-base-service-asg"
 

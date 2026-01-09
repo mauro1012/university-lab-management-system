@@ -1,24 +1,19 @@
-variable "environment" {
-  type        = string
-  description = "Environment name (qa, prod)"
-}
-
-variable "instance_type" {
-  type        = string
-  description = "Instance type for bastion"
-}
-
-variable "ami_id" {
-  type        = string
-  description = "AMI for bastion host"
-}
-
-variable "key_name" {
-  type        = string
-  description = "SSH key pair name"
+variable "vpc_id" {
+  type = string
 }
 
 variable "public_subnet" {
-  type        = string
-  description = "Public subnet ID"
+  type = string
+}
+
+variable "alb_sg_id" {
+  type = string
+}
+
+variable "bastion_sg_id" {
+  type = string
+}
+
+variable "key_name" {
+  type = string
 }
