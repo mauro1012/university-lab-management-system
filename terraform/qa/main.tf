@@ -24,10 +24,13 @@ module "alb" {
 module "asg" {
   source = "../modules/asg"
 
-  private_subnets  = module.vpc.private_subnets
-  alb_target_group = module.alb.target_group_arn
-  instance_type    = var.instance_type
+  private_subnets        = module.vpc.private_subnets
+  alb_target_group       = module.alb.target_group_arn
+  instance_type          = var.instance_type
+  vpc_id                 = module.vpc.vpc_id
+  alb_security_group_id  = module.alb.security_group_id
 }
+
 
 
 # Bastion
