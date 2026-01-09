@@ -1,25 +1,44 @@
+resource "aws_security_group" "asg" {
+  name   = "qa-asg-sg"
+  vpc_id = var.vpc_id
+
+  ingress {
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [var.alb_security_group_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+
 resource "aws_launch_template" "this" {
   name_prefix   = "qa-base-service-"
   instance_type = var.instance_type
   image_id      = data.aws_ami.amazon_linux.id
 
+  vpc_security_group_ids = [
+    aws_security_group.asg.id
+  ]
+
   user_data = base64encode(<<EOF
 #!/bin/bash
 set -e
 
-# Imagen pública (ECR Public)
-IMAGE="public.ecr.aws/abc123/base-service:latest"
+IMAGE="mauro28102023/base-service:qa"
 
-# Update & install Docker
 yum update -y
 yum install -y docker
-
-# Start Docker
 systemctl enable docker
 systemctl start docker
 usermod -aG docker ec2-user
 
-# Pull & run container
 docker pull $IMAGE
 docker stop base-service || true
 docker rm base-service || true
@@ -56,7 +75,7 @@ resource "aws_autoscaling_group" "this" {
   }
 
   health_check_type         = "ELB"
-  health_check_grace_period = 120
+  health_check_grace_period = 180
 
   tag {
     key                 = "Name"

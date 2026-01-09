@@ -1,14 +1,19 @@
 variable "private_subnets" {
-  description = "Private subnets for ASG"
-  type        = list(string)
+  type = list(string)
 }
 
 variable "alb_target_group" {
-  description = "ALB target group ARN"
-  type        = string
+  type = string
 }
 
 variable "instance_type" {
-  description = "EC2 instance type"
-  type        = string
+  type = string
+}
+
+variable "vpc_id" {
+  type = string
+}
+
+variable "alb_security_group_id" {
+  type = string
 }

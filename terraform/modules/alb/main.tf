@@ -1,7 +1,6 @@
 resource "aws_security_group" "alb" {
-  name        = "qa-alb-sg"
-  description = "Security group for QA ALB"
-  vpc_id      = var.vpc_id
+  name   = "alb-sg"
+  vpc_id = var.vpc_id
 
   ingress {
     from_port   = 80
@@ -16,25 +15,13 @@ resource "aws_security_group" "alb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name        = "qa-alb-sg"
-    Environment = "qa"
-  }
 }
 
 resource "aws_lb" "this" {
-  name               = "qa-app-alb"
+  name               = "qa-alb"
   load_balancer_type = "application"
-  internal           = false
-
-  subnets         = var.public_subnets
-  security_groups = [aws_security_group.alb.id]
-
-  tags = {
-    Name        = "qa-app-alb"
-    Environment = "qa"
-  }
+  subnets            = var.public_subnets
+  security_groups    = [aws_security_group.alb.id]
 }
 
 resource "aws_lb_target_group" "this" {
@@ -47,15 +34,10 @@ resource "aws_lb_target_group" "this" {
     path                = "/health"
     protocol            = "HTTP"
     matcher             = "200"
-    interval            = 30
+    interval            = 15
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
-  }
-
-  tags = {
-    Name        = "qa-base-service-tg"
-    Environment = "qa"
   }
 }
 
