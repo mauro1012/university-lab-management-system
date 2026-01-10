@@ -53,6 +53,17 @@ resource "aws_launch_template" "this" {
     aws_security_group.asg.id
   ]
 
+  block_device_mappings {
+  device_name = "/dev/xvda"
+
+  ebs {
+    volume_size           = 40
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
+}
+
+
   user_data = base64encode(<<EOF
 #!/bin/bash
 set -e
