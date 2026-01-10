@@ -1,8 +1,9 @@
-############################
+
 # Security Group - ASG
-############################
+
 resource "aws_security_group" "asg" {
   name   = "qa-asg-sg"
+  description = "App instances SG"
   vpc_id = var.vpc_id
 
   # App traffic ONLY from ALB
@@ -32,9 +33,8 @@ resource "aws_security_group" "asg" {
   }
 }
 
-############################
 # Launch Template
-############################
+
 resource "aws_launch_template" "this" {
   name_prefix   = "qa-base-service-"
   instance_type = var.instance_type
@@ -75,9 +75,9 @@ EOF
   }
 }
 
-############################
+
 # Auto Scaling Group
-############################
+
 resource "aws_autoscaling_group" "this" {
   name = "qa-base-service-asg"
 

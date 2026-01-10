@@ -25,3 +25,4 @@ variable "bastion_security_group_id" {
 variable "key_name" {
   type = string
 }
+

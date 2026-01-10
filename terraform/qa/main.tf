@@ -45,8 +45,7 @@ module "bastion" {
   public_subnet = module.vpc.public_subnets[0]
 
   alb_sg_id     = module.alb.security_group_id
-  bastion_sg_id = module.bastion_sg.security_group_id
+  bastion_sg_id = module.bastion.security_group_id
 
   key_name = "fisrkeys"
 }
-
