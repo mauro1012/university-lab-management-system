@@ -1,6 +1,6 @@
-#####################################
+
 # Security Group - ASG
-#####################################
+
 
 resource "aws_security_group" "asg" {
   name        = "qa-asg-sg"
@@ -38,16 +38,16 @@ resource "aws_security_group" "asg" {
   }
 }
 
-#####################################
+
 # Launch Template
-#####################################
+
 
 resource "aws_launch_template" "this" {
   name_prefix   = "qa-base-service-"
   image_id      = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
 
-  key_name = var.key_name   # 🔑 CLAVE SSH (fisrkeys)
+  key_name = var.key_name   
 
   vpc_security_group_ids = [
     aws_security_group.asg.id
@@ -82,9 +82,9 @@ EOF
   }
 }
 
-#####################################
+
 # Auto Scaling Group
-#####################################
+
 
 resource "aws_autoscaling_group" "this" {
   name = "qa-base-service-asg"
