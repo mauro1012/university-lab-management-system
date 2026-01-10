@@ -8,13 +8,14 @@ module "vpc" {
 }
 
 module "nat" {
-  source = "./modules/nat"
+  source = "../modules/nat"
 
-  name                    = "project"
-  vpc_id                  = module.vpc.vpc_id
-  public_subnet_id         = module.vpc.public_subnets[0]
-  private_route_table_id   = module.vpc.private_route_table_id
+  name                  = "qa"
+  vpc_id                = module.vpc.vpc_id
+  public_subnet_id       = module.vpc.public_subnets[0]
+  private_route_table_id = module.vpc.private_route_table_id
 }
+
 
 
 # ALB
