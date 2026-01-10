@@ -1,3 +1,4 @@
+# Security Group del Bastion
 resource "aws_security_group" "bastion" {
   name        = "bastion-group"
   description = "SSH access to bastion"
@@ -23,4 +24,16 @@ resource "aws_security_group" "bastion" {
   }
 }
 
+# EC2 Bastion
+resource "aws_instance" "bastion" {
+  ami                    = var.ami_id
+  instance_type           = var.instance_type
+  subnet_id               = var.public_subnet
+  key_name                = var.key_name
+  vpc_security_group_ids  = [aws_security_group.bastion.id]
+  associate_public_ip_address = true
 
+  tags = {
+    Name = "bastion-qa"
+  }
+}

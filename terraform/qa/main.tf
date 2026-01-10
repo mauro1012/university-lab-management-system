@@ -3,7 +3,6 @@
 
 module "vpc" {
   source = "../modules/vpc"
-
   name       = "qa-vpc"
   cidr_block = var.vpc_cidr
 }
@@ -13,11 +12,23 @@ module "vpc" {
 
 module "alb" {
   source = "../modules/alb"
-
   vpc_id         = module.vpc.vpc_id
   public_subnets = module.vpc.public_subnets
 }
 
+
+# Bastion
+
+module "bastion" {
+  source = "../modules/bastion"
+
+  vpc_id        = module.vpc.vpc_id
+  public_subnet = module.vpc.public_subnets[0]
+
+  ami_id        = var.bastion_ami_id
+  instance_type = var.instance_type
+  key_name      = var.bastion_key_name
+}
 
 # ASG
 
@@ -32,20 +43,9 @@ module "asg" {
   bastion_security_group_id = module.bastion.security_group_id
 
   instance_type = var.instance_type
-  key_name      = "fisrkeys"
+  key_name      = var.key_name
 }
 
 
-# Bastion
 
-module "bastion" {
-  source = "../modules/bastion"
 
-  vpc_id        = module.vpc.vpc_id
-  public_subnet = module.vpc.public_subnets[0]
-
-  alb_sg_id     = module.alb.security_group_id
-  bastion_sg_id = module.bastion.security_group_id
-
-  key_name = "fisrkeys"
-}
