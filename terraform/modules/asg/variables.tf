@@ -1,28 +1,17 @@
-variable "vpc_id" {
-  type = string
-}
+variable "env" {}
+variable "service_name" {}
+variable "docker_image" {}
 
-variable "private_subnets" {
-  type = list(string)
-}
+variable "desired_capacity" {}
+variable "min_size" {}
+variable "max_size" {}
 
-variable "instance_type" {
-  type = string
-}
+variable "instance_type" {}
+variable "key_name" {}
 
-variable "alb_target_group" {
-  type = string
-}
+variable "vpc_id" {}
+variable "private_subnets" {}
 
-variable "alb_security_group_id" {
-  type = string
-}
-
-variable "bastion_security_group_id" {
-  type = string
-}
-
-variable "key_name" {
-  type = string
-}
-
+variable "alb_security_group_id" {}
+variable "alb_target_group" {}
+variable "bastion_security_group_id" {}

@@ -10,9 +10,23 @@ jobs:
     environment: production
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
+      # Login Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build & Push image
+      - name: Build & Push Docker image
+        run: |
+          docker build -t mauro28102023/base-service:prod ./services/base-service
+          docker push mauro28102023/base-service:prod
+
+      # AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -21,13 +35,20 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
+      # Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.6 
+          terraform_version: 1.6.6
 
-      - name: Terraform Init & Apply (Prod)
-        run: |
-          cd terraform/prod
-          terraform init
-          terraform apply -auto-approve
+      - name: Terraform Init
+        working-directory: terraform/prod
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform/prod
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply (Production)
+        working-directory: terraform/prod
+        run: terraform apply -auto-approve tfplan

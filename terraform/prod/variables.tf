@@ -1,3 +1,7 @@
+variable "environment" {
+  type = string
+}
+
 variable "vpc_cidr" {
   type = string
 }
@@ -6,15 +10,14 @@ variable "instance_type" {
   type = string
 }
 
-variable "ami_id" {
-  type = string
-}
-
-variable "key_name" {
+variable "bastion_ami_id" {
   type = string
 }
 
 variable "bastion_key_name" {
-  description = "SSH key for bastion"
-  type        = string
+  type = string
+}
+
+variable "key_name" {
+  type =  string
 }

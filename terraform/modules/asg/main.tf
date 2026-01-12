@@ -3,11 +3,10 @@
 
 
 resource "aws_security_group" "asg" {
-  name        = "qa-asg-sg"
+  name        = "${var.env}-${var.service_name}-asg-sg"
   description = "App instances SG"
-  vpc_id     = var.vpc_id
+  vpc_id      = var.vpc_id
 
-  # App traffic ONLY from ALB
   ingress {
     description     = "App traffic from ALB"
     from_port       = 8080
@@ -16,7 +15,6 @@ resource "aws_security_group" "asg" {
     security_groups = [var.alb_security_group_id]
   }
 
-  # SSH ONLY from Bastion
   ingress {
     description     = "SSH only from Bastion"
     from_port       = 22
@@ -25,7 +23,6 @@ resource "aws_security_group" "asg" {
     security_groups = [var.bastion_security_group_id]
   }
 
-  # Outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -34,7 +31,7 @@ resource "aws_security_group" "asg" {
   }
 
   tags = {
-    Name = "qa-asg-sg"
+    Name = "${var.env}-${var.service_name}-asg-sg"
   }
 }
 
@@ -43,32 +40,30 @@ resource "aws_security_group" "asg" {
 
 
 resource "aws_launch_template" "this" {
-  name_prefix   = "qa-base-service-"
+  name_prefix   = "${var.env}-${var.service_name}-lt"
   image_id      = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
-
-  key_name = var.key_name   
+  key_name      = var.key_name
 
   vpc_security_group_ids = [
     aws_security_group.asg.id
   ]
 
   block_device_mappings {
-  device_name = "/dev/xvda"
+    device_name = "/dev/xvda"
 
-  ebs {
-    volume_size           = 40
-    volume_type           = "gp3"
-    delete_on_termination = true
+    ebs {
+      volume_size           = 40
+      volume_type           = "gp3"
+      delete_on_termination = true
+    }
   }
-}
-
 
   user_data = base64encode(<<EOF
 #!/bin/bash
 set -e
 
-IMAGE="mauro28102023/base-service:qa"
+IMAGE="${var.docker_image}"
 
 yum update -y
 yum install -y docker
@@ -77,11 +72,11 @@ systemctl start docker
 usermod -aG docker ec2-user
 
 docker pull $IMAGE
-docker stop base-service || true
-docker rm base-service || true
+docker stop ${var.service_name} || true
+docker rm ${var.service_name} || true
 
 docker run -d \
-  --name base-service \
+  --name ${var.service_name} \
   -p 8080:8080 \
   --restart always \
   $IMAGE
@@ -98,11 +93,11 @@ EOF
 
 
 resource "aws_autoscaling_group" "this" {
-  name = "qa-base-service-asg"
+  name = "${var.env}-${var.service_name}-asg"
 
-  desired_capacity = 2
-  min_size         = 1
-  max_size         = 3
+  desired_capacity = var.desired_capacity
+  min_size         = var.min_size
+  max_size         = var.max_size
 
   vpc_zone_identifier = var.private_subnets
 
@@ -120,7 +115,7 @@ resource "aws_autoscaling_group" "this" {
 
   tag {
     key                 = "Name"
-    value               = "qa-base-service"
+    value               = "${var.env}-${var.service_name}"
     propagate_at_launch = true
   }
 

@@ -26,7 +26,7 @@ jobs:
           docker build -t mauro28102023/base-service:qa ./services/base-service
           docker push mauro28102023/base-service:qa
 
-      # AWS credentials (solo para Terraform)
+      # AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -42,11 +42,13 @@ jobs:
           terraform_version: 1.6.6
 
       - name: Terraform Init
-        run: |
-          cd terraform/qa
-          terraform init
+        working-directory: terraform/qa
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform/qa
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply (QA)
-        run: |
-          cd terraform/qa
-          terraform apply -auto-approve
+        working-directory: terraform/qa
+        run: terraform apply -auto-approve tfplan

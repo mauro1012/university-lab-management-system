@@ -1,5 +1,7 @@
-vpc_cidr     = "10.1.0.0/16"
-instance_type = "t3.medium"
-ami_id        = "ami-0abcdef1234567890"
-key_name      = "prod-keypair"
+environment   = "prod"
+vpc_cidr      = "10.10.0.0/16"
+instance_type = "t3.micro"
+
+bastion_ami_id   = "ami-0c02fb55956c7d316"
 bastion_key_name = "fisrkeys"
+key_name = "fisrkeys"
