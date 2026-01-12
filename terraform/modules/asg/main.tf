@@ -79,6 +79,8 @@ docker run -d \
   --name ${var.service_name} \
   -p 8080:8080 \
   --restart always \
+  -e DATABASE_URL="postgresql://dummy:dummy@localhost:5432/db" \
+  -e JWT_SECRET="temp-secret" \
   $IMAGE
 EOF
   )
