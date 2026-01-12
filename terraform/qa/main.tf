@@ -61,7 +61,7 @@ module "asg_base_service" {
   max_size         = 3
 
   instance_type = "t3.micro"
-  key_name      = "qa-key"
+  key_name      = var.bastion_key_name
 
   vpc_id                     = module.vpc.vpc_id
   private_subnets             = module.vpc.private_subnets
