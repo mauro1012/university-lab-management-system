@@ -1,7 +1,3 @@
-Perfecto, aquí tienes el **README.md** corregido **en Markdown**, con un estilo **formal, claro y técnico**, sin emojis y listo para repositorio académico o profesional.
-
----
-
 # Security and Authentication Microservice
 
 ## 1. Overview
