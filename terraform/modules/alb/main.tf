@@ -25,6 +25,7 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_listener" "http" {
+  depends_on = [aws_lb_target_group.this]
   load_balancer_arn = aws_lb.this.arn
   port              = 80
   protocol          = "HTTP"

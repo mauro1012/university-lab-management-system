@@ -30,3 +30,5 @@ lerna-debug.log*
 .env.example
 package-lock.json
 package-lock.json.*
+.env
+dist
