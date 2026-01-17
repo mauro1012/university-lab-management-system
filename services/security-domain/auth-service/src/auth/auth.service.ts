@@ -23,7 +23,8 @@ export class AuthService {
     const payload = { 
       sub: user.id, 
       email: user.email, 
-      role: user.role // Importante para el Control de Acceso [cite: 508, 628]
+      role: user.role,
+      name: `${user.firstName} ${user.lastName}`
     };
 
     return {

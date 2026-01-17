@@ -24,10 +24,14 @@ model Laboratory {
 
 model Assignment {
   id           String   @id @default(uuid()) @db.Uuid
-  teacherId    String   @db.Uuid @map("teacher_id") 
+  teacherId    String   @db.Uuid @map("teacher_id")
+  teacherName  String   @map("teacher_name")
   laboratoryId String   @db.Uuid @map("laboratory_id")
   startTime    DateTime @map("start_time")
   endTime      DateTime @map("end_time")
+  isRecurring  Boolean  @default(false)
+  daysOfWeek   String[] 
+  endDate      DateTime?
   createdAt    DateTime @default(now()) @map("created_at")
 
   laboratory   Laboratory @relation(fields: [laboratoryId], references: [id])

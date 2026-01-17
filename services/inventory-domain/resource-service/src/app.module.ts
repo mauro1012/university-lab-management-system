@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { LaboratoriesModule } from './laboratories/laboratories.module';
+import { AssignmentsModule } from './assignments/assignments.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './common/strategy/jwt.strategy';
@@ -8,6 +9,7 @@ import { JwtStrategy } from './common/strategy/jwt.strategy';
 @Module({
   imports: [
     LaboratoriesModule,
+    AssignmentsModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'super-secret-key', //Same key as Auth Service
