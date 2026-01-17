@@ -1,0 +1,16 @@
+services:
+  db-resource:
+    image: postgres:15
+    container_name: resource-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: resource_db
+    ports:
+      - "5445:5432" # Mapeamos el 5432 interno al 5445 externo para evitar conflictos
+    volumes:
+      - resource_data:/var/lib/postgresql/data
+
+volumes:
+  resource_data:
