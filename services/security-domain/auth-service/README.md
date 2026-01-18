@@ -1,126 +1,191 @@
+
 # Security and Authentication Microservice
+
+---
 
 ## 1. Overview
 
-The Security and Authentication Microservice is a core component of the University Lab Management System.
-Its responsibility is to manage user identity, authentication, and authorization, providing a secure and centralized access control mechanism for all other microservices.
+The **Security and Authentication Microservice** is the central identity provider of the **University Lab Management System**.
+It is responsible for **user authentication**, **authorization**, and **access control**, implementing a **stateless security model** based on **JSON Web Tokens (JWT)** and **Role-Based Access Control (RBAC)**.
 
-The service implements a stateless security model based on JSON Web Tokens (JWT) and Role-Based Access Control (RBAC), ensuring scalability, maintainability, and compliance with modern security standards.
+This service ensures secure access to all protected resources across the platform and acts as the foundation for inter-service communication and API protection.
 
 ---
 
 ## 2. Technology Stack
 
-* **Language:** TypeScript (Node.js runtime)
-* **Framework:** NestJS (modular and scalable architecture)
-* **Database:** PostgreSQL (Dockerized or Amazon RDS compatible)
+### Backend
+
+* **Framework:** NestJS (Node.js runtime)
+* **Language:** TypeScript
+* **Database:** PostgreSQL
 * **ORM:** Prisma
-* **Authentication:** JSON Web Tokens (JWT)
+* **Authentication:** Passport.js (JWT Strategy)
 * **Security:**
 
-  * Bcrypt for password hashing
-  * Passport.js for JWT authentication strategy
+  * Bcrypt (password hashing, 10 salt rounds)
+  * JWT standardized payload (`sub` claim)
+  * Regex-based input validation
+
+### Frontend
+
+* **Framework:** React (Vite)
+* **Styling:** Tailwind CSS
+* **Icons:** Lucide React
+* **API Communication:** Axios with JWT interceptors
 
 ---
 
 ## 3. Project Structure
 
+### Backend — Auth Service
+
 ```text
-src/
-├── auth/
-│   ├── dto/
-│   │   └── login.dto.ts
-│   ├── guards/
-│   │   └── jwt-auth.guard.ts
-│   ├── strategies/
-│   │   └── jwt.strategy.ts
-│   ├── auth.controller.ts
-│   ├── auth.module.ts
-│   └── auth.service.ts
-├── users/
-│   ├── dto/
-│   │   └── create-user.dto.ts
-│   ├── users.controller.ts
-│   ├── users.module.ts
-│   └── users.service.ts
+auth-service/
+├── src/
+│   ├── auth/
+│   │   ├── decorators/        # Custom decorators (@Roles)
+│   │   ├── dto/               # login.dto.ts, register.dto.ts
+│   │   ├── guards/            # jwt-auth.guard.ts, roles.guard.ts
+│   │   ├── strategies/        # jwt.strategy.ts (JWT sub mapping)
+│   │   ├── auth.controller.ts # Login, register, change password
+│   │   └── auth.service.ts    # Authentication logic
+│   ├── users/
+│   │   ├── users.controller.ts
+│   │   └── users.service.ts
+│   └── main.ts
 ├── prisma/
-│   ├── prisma.module.ts
-│   └── prisma.service.ts
-├── app.module.ts
-└── main.ts
+│   └── schema.prisma
 ```
 
 ---
 
-## 4. Core Components
+### Frontend — Web Application
 
-### UsersController
-
-Exposes HTTP endpoints for user management operations.
-It applies validation mechanisms to ensure input data integrity.
-
-### UsersService
-
-Encapsulates all user-related business logic and database interactions.
-Uses Prisma Client to perform secure CRUD operations on PostgreSQL.
-
-### AuthService
-
-Handles authentication logic, including credential validation using Bcrypt and JWT token generation.
-
-### JwtStrategy
-
-Validates incoming JWT tokens and attaches authenticated user metadata to the request context.
-
-### JwtAuthGuard and RolesGuard
-
-* JwtAuthGuard protects routes by requiring a valid JWT.
-* RolesGuard enforces Role-Based Access Control by verifying user permissions.
-
-### Data Transfer Objects (DTOs)
-
-* CreateUserDto
-* LoginDto
-
-DTOs define request schemas and apply validation rules using class-validator decorators.
+```text
+frontend-web/
+├── src/
+│   ├── pages/
+│   │   ├── users/             # UserManagement.tsx (Admin CRUD)
+│   │   ├── profile/           # Profile.tsx (Self-service security)
+│   │   └── dashboard/         # Role-based dashboards
+│   ├── api/
+│   │   └── auth.api.ts        # Axios instance with JWT interceptor
+```
 
 ---
 
-## 5. Database Schema
+## 4. Key Features
 
-The database schema is defined in `schema.prisma` and ensures relational consistency and scalability.
+### Authentication & Authorization
+
+* Stateless JWT-based authentication
+* Role-based access control (RBAC)
+* Secure token validation via Passport strategies
+
+### Self-Service Security
+
+* Profile management for Admins and Teachers
+* Secure password change flow
+* Bcrypt validation of previous password before updates
+
+### Admin User Management
+
+* Create, list, update, and delete users
+* Role assignment without exposing passwords
+* UI-level route protection and redirection
+
+### JWT Standardization
+
+* Uses `sub` (subject) to store the user ID
+* Prevents undefined user resolution in protected routes
+* Ensures compatibility across backend guards and strategies
+
+---
+
+## 5. Security Design Principles
+
+* Stateless authentication using HTTP `Authorization: Bearer` headers
+
+* Strict separation of authentication and authorization concerns
+
+* Standardized JWT payload structure:
+
+  ```json
+  {
+    "sub": "user-id",
+    "email": "user@email.com",
+    "role": "ADMIN"
+  }
+  ```
+
+* Frontend route protection based on role permissions
+
+* No sensitive credentials stored or exposed in client-side code
+
+---
+
+## 6. Database Design
 
 ### User Model
 
-* `id`: UUID (Primary Key)
-* `email`: Unique and indexed
-* `password`: Hashed value
-* `role`: Enum-based role
-* `createdAt`: Timestamp
-* `updatedAt`: Timestamp
+* UUID-based primary key
+* Unique email index
+* Hashed passwords
+* Role-based authorization
+* Audit fields for tracking creation and updates
 
-### Role Enum
+### Role Enumeration
 
-Defines authorization levels within the system:
-
-* ADMIN
-* MANAGER
-* STUDENT
-* USER
+```text
+ADMIN    - Full system access and user management
+TEACHER  - Limited access to personal profile and labs
+```
 
 ---
 
-## 6. Security Design Principles
+## 7. API Endpoints
 
-* Passwords are securely hashed and never stored in plain text
-* Stateless authentication using JWT
-* Centralized authorization using RBAC
-* Clear separation of concerns using NestJS modules
+### Authentication
+
+| Method | Endpoint                | Access  | Description                      |
+| ------ | ----------------------- | ------- | -------------------------------- |
+| POST   | `/auth/login`           | Public  | Authenticate user and return JWT |
+| POST   | `/auth/register`        | Admin   | Register new user                |
+| POST   | `/auth/change-password` | Private | Update password after validation |
+
+### User Management
+
+| Method | Endpoint     | Access | Description      |
+| ------ | ------------ | ------ | ---------------- |
+| GET    | `/users`     | Admin  | List all users   |
+| PATCH  | `/users/:id` | Admin  | Update user data |
 
 ---
 
-## 7. Role Within the System
+## 8. Architectural Role
 
-This microservice serves as the authentication and authorization backbone of the platform, enabling secure communication between microservices and consistent enforcement of access control policies across the system.
+This microservice acts as:
 
+* The **authentication authority** for all backend services
+* The **JWT issuer** for protected endpoints
+* The foundation for **secure microservice communication**
+
+It is designed to integrate seamlessly with:
+
+* API Gateway / ALB routing
+* Docker-based deployments
+* QA and Production environments
+* CI/CD pipelines
+
+---
+
+## 9. Status
+
+* Auth flows implemented and validated
+* Role-based access enforced
+* Database migrations stable
+* Ready for containerization and AWS deployment
+
+---
 
