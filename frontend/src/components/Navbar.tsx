@@ -1,45 +1,49 @@
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User as UserIcon, ShieldCheck } from 'lucide-react'; 
+import { LogOut, User as UserIcon, ShieldCheck, Settings } from 'lucide-react'; 
+import { Link } from 'react-router-dom';
 
 export const Navbar = () => {
   const { logout, user } = useAuth();
 
-  // PRIORIDAD DE ROL:
-  // 1. Usamos el rol que viene del estado global (user.role)
-  // 2. Si el estado es null (al refrescar), intentamos leer localStorage
-  // 3. Por último, si no hay nada, 'TEACHER' por seguridad.
+  // Prioridad de rol para consistencia visual
   const role = user?.role || localStorage.getItem('role') || 'TEACHER';
 
   return (
     <nav className="bg-white shadow-sm border-b px-6 py-3 flex justify-between items-center w-full">
-      {/* Lado Izquierdo: Logo */}
-      <div className="flex items-center gap-2">
+      {/* Lado Izquierdo: Logo y Link al Dashboard */}
+      <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
         <div className="bg-blue-600 p-1.5 rounded-lg shadow-inner">
           <div className="text-white font-bold text-sm">UL</div>
         </div>
         <span className="font-bold text-gray-800 hidden md:block tracking-tight">
           University Lab Management
         </span>
-      </div>
+      </Link>
 
       {/* Lado Derecho: Perfil y Logout */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-3 text-gray-600 border-r pr-6 border-gray-100">
+      <div className="flex items-center gap-4">
+        
+        {/* SECCIÓN DE PERFIL: Envolvemos en Link hacia /perfil */}
+        <Link 
+          to="/perfil" 
+          className="flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 group"
+          title="Ver mi perfil y seguridad"
+        >
           <div className="flex flex-col items-end">
-            <span className="text-xs font-medium text-gray-500 mb-0.5">Sesión iniciada</span>
-            <span className="text-sm font-bold text-gray-900 leading-none">
+            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">Mi Cuenta</span>
+            <span className="text-sm font-bold text-gray-900 leading-none group-hover:text-blue-600 transition-colors">
               {user?.email || 'Usuario'}
             </span>
           </div>
 
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-1 relative">
             {role === 'ADMIN' ? (
               <ShieldCheck size={20} className="text-purple-600" />
             ) : (
               <UserIcon size={20} className="text-blue-600" />
             )}
             
-            <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-sm ${
+            <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-sm ${
               role === 'ADMIN' 
                 ? 'bg-purple-600 text-white' 
                 : 'bg-blue-600 text-white'
@@ -47,14 +51,18 @@ export const Navbar = () => {
               {role}
             </span>
           </div>
-        </div>
+        </Link>
+
+        {/* Separador visual */}
+        <div className="h-8 w-[1px] bg-gray-100 mx-2"></div>
         
+        {/* Botón Salir */}
         <button 
           onClick={logout}
-          className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-all text-sm font-bold group"
+          className="flex items-center gap-2 text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg transition-all text-sm font-bold group"
         >
-          <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
-          <span>Salir</span>
+          <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
+          <span className="hidden sm:inline">Salir</span>
         </button>
       </div>
     </nav>

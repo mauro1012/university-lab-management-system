@@ -4,8 +4,6 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt'; 
 
-
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -14,28 +12,17 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    // 1. Encriptar la contraseña antes de guardar
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(registerDto.password, salt);
-
-    // 2. Crear el objeto de usuario para el UsersService
-      const newUser = await this.usersService.createUser(registerDto);
-
-    // 3. Retornar el usuario creado (sin la contraseña por seguridad)
-    const { password, ...result } = newUser;
-    return result;
+    // El UsersService ya se encarga de la encriptación en createUser
+    return this.usersService.createUser(registerDto);
   }
 
   async login(email: string, pass: string) {
-    // 1. Buscar usuario en PostgreSQL
     const user = await this.usersService.findByEmail(email);
     
-    // 2. Validar contraseña con Bcrypt
     if (!user || !(await bcrypt.compare(pass, user.password))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    // 3. Generar el Payload para el JWT (Información encriptada)
     const payload = { 
       sub: user.id, 
       email: user.email, 
@@ -43,16 +30,29 @@ export class AuthService {
       name: `${user.firstName} ${user.lastName}`
     };
 
-    // 4. Retornar el token Y el objeto de usuario (Información para el Frontend)
-    // Esto es lo que permite que el Navbar muestre el rol correctamente
     return {
       access_token: await this.jwtService.signAsync(payload),
       user: {
         id: user.id,
         email: user.email,
-        role: user.role, // <-- IMPORTANTE: Ahora el frontend recibirá 'ADMIN' o 'TEACHER'
+        role: user.role,
         name: `${user.firstName} ${user.lastName}`
       }
     };
+  }
+
+  async changePassword(userId: string, oldPass: string, newPass: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+
+    // 1. Validar contraseña actual
+    const isMatch = await bcrypt.compare(oldPass, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    // 2. Encriptar y guardar la nueva
+    const hashedPassword = await bcrypt.hash(newPass, 10);
+    return this.usersService.updatePassword(userId, hashedPassword);
   }
 }

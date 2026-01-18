@@ -19,3 +19,10 @@ export interface RegisterData {
   lastName: string;
   role: 'ADMIN' | 'TEACHER';
 }
+
+export interface User {
+  id: string;      
+  email: string;
+  role: 'ADMIN' | 'TEACHER';
+  name?: string;   
+}

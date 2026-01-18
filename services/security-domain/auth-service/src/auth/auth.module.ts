@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { UsersModule } from '../users/users.module'; // Ruta correcta hacia otro dominio
+import { UsersModule } from '../users/users.module'; 
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy'; 
 import { RolesGuard } from './guards/roles.guard';
@@ -10,7 +10,8 @@ import { PassportModule } from '@nestjs/passport';
 @Module({
   imports: [
     UsersModule,
-    PassportModule,
+    // MEJORA: Definimos la estrategia por defecto para evitar errores de autenticación
+    PassportModule.register({ defaultStrategy: 'jwt' }), 
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET || 'SECRET_KEY',
@@ -21,8 +22,9 @@ import { PassportModule } from '@nestjs/passport';
   providers: [
     AuthService, 
     JwtStrategy, 
-    RolesGuard   
+    RolesGuard 
   ],
-  exports: [AuthService],
+  // MEJORA: Exportamos PassportModule y RolesGuard por si otros módulos los necesitan
+  exports: [AuthService, PassportModule, RolesGuard], 
 })
 export class AuthModule {}

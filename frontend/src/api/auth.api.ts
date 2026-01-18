@@ -27,3 +27,9 @@ export const updateUser = (id: string, data: any) => authApi.patch(`/users/${id}
 
 // Eliminar un usuario
 export const deleteUser = (id: string) => authApi.delete(`/users/${id}`);
+
+// Cambiar la contraseña del usuario autenticado
+export const loginUser = (data: any) => authApi.post('/auth/login', data);
+
+// Cambiar la contraseña del usuario autenticado
+export const changePassword = (data: any) => authApi.post('/auth/change-password', data);
