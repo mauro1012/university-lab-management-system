@@ -31,4 +31,39 @@ export class UsersService {
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
+
+//  Método para listar todos
+  async findAll() {
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+     },
+   });
+ } 
+
+ async update(id: string, data: any) {
+  // Si envían password, hay que encriptarla de nuevo
+  if (data.password && data.password.trim() !== "") {
+    data.password = await bcrypt.hash(data.password, 10);
+  } else {
+    delete data.password; // No actualizamos password si viene vacía
+  }
+
+  return this.prisma.user.update({
+    where: { id },
+    data,
+  });
+}
+
+// Método para eliminar
+  async remove(id: string) {
+  // Opcional: Validar que el usuario existe antes de borrar
+    return this.prisma.user.delete({
+      where: { id },
+   });
+ } 
 }

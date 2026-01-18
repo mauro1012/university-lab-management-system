@@ -18,3 +18,12 @@ authApi.interceptors.request.use((config) => {
 });
 
 export const registerUser = (data: any) => authApi.post('/auth/register', data);
+
+// Obtener todos los usuarios
+export const getUsers = () => authApi.get('/users');
+
+// Actualizar un usuario existente
+export const updateUser = (id: string, data: any) => authApi.patch(`/users/${id}`, data);
+
+// Eliminar un usuario
+export const deleteUser = (id: string) => authApi.delete(`/users/${id}`);
