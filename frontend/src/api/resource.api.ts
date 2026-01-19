@@ -18,4 +18,9 @@ export const createLaboratory = (data: any) => resourceApi.post('/laboratories',
 export const updateLaboratory = (id: string, data: any) => resourceApi.patch(`/laboratories/${id}`, data);
 export const deleteLaboratory = (id: string) => resourceApi.delete(`/laboratories/${id}`);
 
+
+export const getAssignments = () => resourceApi.get('/assignments');
+export const createAssignment = (data: any) => resourceApi.post('/assignments', data);
+export const deleteAssignment = (id: string) => resourceApi.delete(`/assignments/${id}`);
+
 export default resourceApi;

@@ -5,8 +5,8 @@ import UserManagement from './pages/users/UserManagement';
 import Dashboard from './pages/dashboard/Dashboard';
 import Profile from './pages/profile/Profile';
 import LaboratoryManagement from './pages/laboratories/LaboratoryManagement';
-// Importa el componente de asignaciones si ya lo creaste o lo crearás pronto
-// import AssignmentManagement from './pages/assignments/AssignmentManagement';
+import AssignmentManagement from './pages/assignments/AssignmentManagement';
+
 
 interface RouteProps {
   children: React.ReactNode;
@@ -77,7 +77,7 @@ function App() {
         />
 
         {/* Gestión de Asignaciones (Reservas de horarios) */}
-        {/* <Route 
+        { <Route 
           path="/asignaciones" 
           element={
             <AdminRoute>
@@ -85,7 +85,7 @@ function App() {
             </AdminRoute>
           } 
         /> 
-        */}
+        }
 
         {/* Redirección global: Si la ruta no existe, va al login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
