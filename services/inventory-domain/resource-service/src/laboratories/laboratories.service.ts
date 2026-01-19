@@ -6,51 +6,35 @@ import { CreateLaboratoryDto } from './dto/create-laboratory.dto';
 export class LaboratoriesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createLaboratoryDto: CreateLaboratoryDto) {
-    const exists = await this.prisma.laboratory.findUnique({
-      where: { name: createLaboratoryDto.name }
-    });
+  async create(dto: CreateLaboratoryDto) {
+    const exists = await this.prisma.laboratory.findUnique({ where: { name: dto.name } });
     if (exists) throw new ConflictException('El nombre del laboratorio ya existe');
-
-    return this.prisma.laboratory.create({ data: createLaboratoryDto });
+    return this.prisma.laboratory.create({ data: dto });
   }
 
   async findAll() {
-    return this.prisma.laboratory.findMany();
+    return this.prisma.laboratory.findMany({
+      orderBy: { name: 'asc' }
+    });
   }
 
-  // --- NUEVOS MÉTODOS ---
-
-  async update(id: string, updateDto: Partial<CreateLaboratoryDto>) {
+  async update(id: string, dto: Partial<CreateLaboratoryDto>) {
     const lab = await this.prisma.laboratory.findUnique({ where: { id } });
     if (!lab) throw new NotFoundException('Laboratorio no encontrado');
 
-    // Si intenta cambiar el nombre, verificar que el nuevo no esté ocupado
-    if (updateDto.name && updateDto.name !== lab.name) {
-      const nameExists = await this.prisma.laboratory.findUnique({ where: { name: updateDto.name } });
+    if (dto.name && dto.name !== lab.name) {
+      const nameExists = await this.prisma.laboratory.findUnique({ where: { name: dto.name } });
       if (nameExists) throw new ConflictException('El nuevo nombre ya está en uso');
     }
 
-    return this.prisma.laboratory.update({
-      where: { id },
-      data: updateDto,
-    });
+    return this.prisma.laboratory.update({ where: { id }, data: dto });
   }
 
   async remove(id: string) {
-    // Verificamos si tiene asignaciones antes de borrar
-    const hasAssignments = await this.prisma.assignment.findFirst({
-      where: { laboratoryId: id }
-    });
-
+    const hasAssignments = await this.prisma.assignment.findFirst({ where: { laboratoryId: id } });
     if (hasAssignments) {
-      throw new ConflictException('No se puede eliminar: el laboratorio tiene reservas activas');
+      throw new ConflictException('No se puede eliminar: tiene reservas activas');
     }
-
-    try {
-      return await this.prisma.laboratory.delete({ where: { id } });
-    } catch (e) {
-      throw new NotFoundException('Laboratorio no encontrado');
-    }
+    return this.prisma.laboratory.delete({ where: { id } });
   }
 }

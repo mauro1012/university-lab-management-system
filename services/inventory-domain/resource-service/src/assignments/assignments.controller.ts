@@ -1,15 +1,4 @@
-// Añadimos Patch, Delete y Param a la lista de importaciones de @nestjs/common
-import { 
-  Controller, 
-  Post, 
-  Get, 
-  Patch, 
-  Delete, 
-  Param, 
-  Body, 
-  UseGuards, 
-  Req 
-} from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { AssignmentsService } from './assignments.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -24,7 +13,8 @@ export class AssignmentsController {
   @Roles('ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   create(@Body() dto: CreateAssignmentDto, @Req() req: any) {
-    return this.assignmentsService.assign(dto, req.user.userId, dto.teacherName);
+    // CORRECCIÓN: Usamos req.user.sub que viene de la JwtStrategy
+    return this.assignmentsService.assign(dto, req.user.sub, dto.teacherName);
   }
 
   @Get()
