@@ -1,6 +1,6 @@
 # Grupo de subnets donde vivirá la DB (Subnets privadas)
 resource "aws_db_subnet_group" "this" {
-  name       = "${var.env}-rds-subnet-group"
+  name       = "${var.env}-rds1-subnet-group"
   subnet_ids = var.private_subnets
 
   tags = { Name = "${var.env}-rds-sng" }
