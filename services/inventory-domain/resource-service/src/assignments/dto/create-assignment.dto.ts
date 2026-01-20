@@ -1,6 +1,10 @@
 import { IsUUID, IsDateString, IsBoolean, IsArray, IsOptional, IsString } from 'class-validator';
 
 export class CreateAssignmentDto {
+  @IsString()
+  @IsOptional()
+  subject: string; 
+
   @IsUUID()
   laboratoryId: string;
 

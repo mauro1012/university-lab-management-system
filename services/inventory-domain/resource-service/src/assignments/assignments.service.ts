@@ -14,6 +14,7 @@ export class AssignmentsService {
 
     return this.prisma.assignment.create({
       data: {
+        subject: dto.subject,
         teacherId: adminId,
         teacherName,
         laboratoryId: dto.laboratoryId,

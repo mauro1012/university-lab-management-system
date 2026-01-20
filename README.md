@@ -1,4 +1,4 @@
-# AWS Lab Management Microservices Architecture 
+cd# AWS Lab Management Microservices Architecture 
 
 ##  Project Description
 This project focuses on a real-time university laboratory availability monitoring and management system. It utilizes a highly scalable microservices architecture deployed on **AWS**, designed to handle high student concurrency while ensuring academic data integrity through polyglot persistence. The system provides automated tracking of lab spaces, allowing students to check availability and teachers to manage sessions seamlessly.

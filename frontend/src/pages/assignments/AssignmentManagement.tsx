@@ -1,12 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Calendar, Plus, User, Beaker, X, Trash2, Edit3, Clock } from 'lucide-react';
+import { Calendar, Plus, User, Beaker, X, Trash2, Edit3, Clock, BookOpen } from 'lucide-react';
 import resourceApi, { getLaboratories, getAssignments, createAssignment, deleteAssignment } from '../../api/resource.api';
 import axios from 'axios';
 
+// Interfaces actualizadas con el campo subject
 interface Lab { id: string; name: string; capacity: number; location: string; }
 interface Professor { id: string; firstName: string; lastName: string; role: string; email: string; }
-interface Assignment { id: string; laboratoryId: string; teacherName: string; startTime: string; endTime: string; isRecurring: boolean; daysOfWeek: string[]; }
+interface Assignment { 
+  id: string; 
+  subject: string; // <-- Agregado
+  laboratoryId: string; 
+  teacherName: string; 
+  startTime: string; 
+  endTime: string; 
+  isRecurring: boolean; 
+  daysOfWeek: string[]; 
+}
 
 const AssignmentManagement = () => {
   const { user } = useAuth();
@@ -21,8 +31,17 @@ const AssignmentManagement = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
-    laboratoryId: '', professorId: '', teacherName: '', startTime: '', endTime: '',
-    singleDate: '', startMonthYear: '', endMonthYear: '', isRecurring: true, daysOfWeek: [] as string[]
+    subject: '', // <-- Agregado al estado
+    laboratoryId: '', 
+    professorId: '', 
+    teacherName: '', 
+    startTime: '', 
+    endTime: '',
+    singleDate: '', 
+    startMonthYear: '', 
+    endMonthYear: '', 
+    isRecurring: true, 
+    daysOfWeek: [] as string[]
   });
 
   const daysList = [
@@ -61,6 +80,7 @@ const AssignmentManagement = () => {
     setIsModalOpen(false);
     setEditingId(null);
     setFormData({
+      subject: '', // Limpiar materia
       laboratoryId: '', professorId: '', teacherName: '', startTime: '', endTime: '',
       singleDate: '', startMonthYear: '', endMonthYear: '', isRecurring: true, daysOfWeek: []
     });
@@ -72,11 +92,12 @@ const AssignmentManagement = () => {
     const end = new Date(asig.endTime);
     
     setFormData({
+      subject: asig.subject || '', // <-- Cargar materia al editar
       laboratoryId: asig.laboratoryId,
-      professorId: '', // Opcional buscar ID
+      professorId: '', 
       teacherName: asig.teacherName,
-      startTime: start.toTimeString().substring(0, 5),
-      endTime: end.toTimeString().substring(0, 5),
+      startTime: start.getUTCHours().toString().padStart(2, '0') + ':' + start.getUTCMinutes().toString().padStart(2, '0'),
+      endTime: end.getUTCHours().toString().padStart(2, '0') + ':' + end.getUTCMinutes().toString().padStart(2, '0'),
       singleDate: start.toISOString().split('T')[0],
       startMonthYear: start.toISOString().substring(0, 7),
       endMonthYear: end.toISOString().substring(0, 7),
@@ -90,7 +111,6 @@ const AssignmentManagement = () => {
     e.preventDefault();
     const selectedProf = professors.find(p => p.id === formData.professorId);
     
-    // Al editar, si no se cambió el profesor, mantenemos el teacherName que ya tenía
     const identityString = selectedProf 
       ? `${selectedProf.firstName} ${selectedProf.lastName} (${selectedProf.email})` 
       : formData.teacherName;
@@ -98,13 +118,14 @@ const AssignmentManagement = () => {
     try {
       const baseDate = formData.isRecurring ? `${formData.startMonthYear}-01` : formData.singleDate;
       const payload = {
+        subject: formData.subject, // <-- Enviar materia en el payload
         laboratoryId: formData.laboratoryId,
         teacherName: identityString,
-        startTime: new Date(`${baseDate}T${formData.startTime}:00`).toISOString(),
-        endTime: new Date(`${baseDate}T${formData.endTime}:00`).toISOString(),
+        startTime: new Date(`${baseDate}T${formData.startTime}:00Z`).toISOString(),
+        endTime: new Date(`${baseDate}T${formData.endTime}:00Z`).toISOString(),
         isRecurring: formData.isRecurring,
         daysOfWeek: formData.isRecurring ? formData.daysOfWeek : [],
-        endDate: formData.isRecurring ? new Date(`${formData.endMonthYear}-28T23:59:59`).toISOString() : null
+        endDate: formData.isRecurring ? new Date(`${formData.endMonthYear}-28T23:59:59Z`).toISOString() : null
       };
 
       if (editingId) {
@@ -133,7 +154,6 @@ const AssignmentManagement = () => {
           )}
         </div>
 
-        {/* Listado de Tarjetas Mejoradas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {assignments.map((asig) => (
             <div key={asig.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
@@ -146,9 +166,13 @@ const AssignmentManagement = () => {
                 </span>
               </div>
 
-              <h3 className="font-black text-gray-800 text-2xl mb-4 uppercase tracking-tighter">
+              {/* Título: Laboratorio + Materia */}
+              <h3 className="font-black text-gray-800 text-2xl uppercase tracking-tighter leading-none">
                 {labs.find(l => l.id === asig.laboratoryId)?.name || 'Laboratorio'}
               </h3>
+              <p className="text-blue-600 font-black text-xs uppercase tracking-widest mt-1 mb-4 italic flex items-center gap-1">
+                <BookOpen size={14} /> {asig.subject || "Sin Materia"}
+              </p>
               
               <div className="space-y-3 mb-6">
                 <div className="flex items-start gap-3 text-gray-500 font-bold italic">
@@ -160,7 +184,7 @@ const AssignmentManagement = () => {
                 </div>
                 <div className="flex items-center gap-3 text-gray-500 font-bold italic">
                   <Clock size={18} className="text-blue-400" />
-                  <span>{new Date(asig.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(asig.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  <span>{new Date(asig.startTime).getUTCHours().toString().padStart(2, '0')}:{new Date(asig.startTime).getUTCMinutes().toString().padStart(2, '0')} - {new Date(asig.endTime).getUTCHours().toString().padStart(2, '0')}:{new Date(asig.endTime).getUTCMinutes().toString().padStart(2, '0')}</span>
                 </div>
               </div>
 
@@ -195,6 +219,20 @@ const AssignmentManagement = () => {
               <button onClick={closeModal}><X size={32} /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-10 space-y-6">
+              
+              {/* Campo de Materia Agregado */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase ml-2 text-gray-400">Asignatura / Materia</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="Ej: Análisis de Sistemas"
+                  className="w-full px-6 py-4 rounded-2xl bg-gray-50 font-bold border-none"
+                  value={formData.subject}
+                  onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                />
+              </div>
+
               <div className="flex gap-4 p-1 bg-gray-100 rounded-2xl">
                 <button type="button" onClick={() => setFormData({...formData, isRecurring: true})} className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${formData.isRecurring ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>Semestral</button>
                 <button type="button" onClick={() => setFormData({...formData, isRecurring: false})} className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${!formData.isRecurring ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>Día Único</button>
