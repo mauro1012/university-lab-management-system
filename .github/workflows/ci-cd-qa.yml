@@ -13,20 +13,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Login Docker Hub
+      # 1. Login Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build & Push image
-      - name: Build & Push Docker image
+      # 2. Build & Push 
+      - name: Build & Push Docker images
         run: |
-          docker build -t mauro28102023/base-service:qa ./services/base-service
-          docker push mauro28102023/base-service:qa
+          # Ruta para Auth Service
+          docker build -t mauro28102023/auth-service:qa ./services/security-domain/auth-service
+          docker push mauro28102023/auth-service:qa
+          
+          # Ruta para Resource Service
+          docker build -t mauro28102023/resource-service:qa ./services/inventory-domain/resource-service
+          docker push mauro28102023/resource-service:qa
 
-      # AWS credentials
+      # 3. AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -35,7 +40,7 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      # Terraform
+      # 4. Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -45,10 +50,55 @@ jobs:
         working-directory: terraform/qa
         run: terraform init
 
-      - name: Terraform Plan
-        working-directory: terraform/qa
-        run: terraform plan -out=tfplan
-
       - name: Terraform Apply (QA)
+        id: apply
         working-directory: terraform/qa
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve
+# 5. Configurar llave SSH para entrar al Bastion
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      # 6. Migraciones para Auth Service
+      - name: Run Auth Prisma Migrations
+        working-directory: services/security-domain/auth-service
+        run: |
+          npm install prisma @prisma/client
+          
+          # 1. Obtener datos de Terraform
+          BASTION_IP=$(terraform -chdir=../../../terraform/qa output -raw bastion_public_ip)
+          RDS_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
+          
+          # 2. Crear túnel SSH (abre un puente hacia la base de datos privada)
+          ssh -o StrictHostKeyChecking=no -L 5433:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N &
+          sleep 5 # Esperar a que el túnel se conecte
+          
+          # 3. Ejecutar migración a través del túnel (puerto 5433)
+          export DATABASE_URL="postgresql://dbadmin:SecurePassword123!@localhost:5433/university_db"
+          npx prisma migrate deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      # 7. Migraciones para Resource Service
+      - name: Run Resource Prisma Migrations
+        working-directory: services/inventory-domain/resource-service
+        run: |
+          npm install prisma @prisma/client
+          
+          # Usamos el mismo túnel ya creado o creamos uno nuevo si es necesario
+          BASTION_IP=$(terraform -chdir=../../../terraform/qa output -raw bastion_public_ip)
+          RDS_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
+          
+          ssh -o StrictHostKeyChecking=no -L 5434:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N &
+          sleep 5
+          
+          export DATABASE_URL="postgresql://dbadmin:SecurePassword123!@localhost:5434/university_db"
+          npx prisma migrate deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}

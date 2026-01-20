@@ -7,28 +7,25 @@ import Profile from './pages/profile/Profile';
 import LaboratoryManagement from './pages/laboratories/LaboratoryManagement';
 import AssignmentManagement from './pages/assignments/AssignmentManagement';
 
-
 interface RouteProps {
   children: React.ReactNode;
 }
 
-// --- Componente para proteger rutas generales ---
+// --- Componente para proteger rutas generales (ADMIN y TEACHER) ---
 const PrivateRoute = ({ children }: RouteProps) => {
   const { isAuthenticated, loading } = useAuth();
-
-  // Evita redirecciones incorrectas mientras se verifica el token en localStorage
   if (loading) return <div className="flex items-center justify-center h-screen">Cargando sesión...</div>;
-
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
-// --- Componente para proteger rutas exclusivas de ADMIN ---
+// --- Componente para proteger rutas EXCLUSIVAS de ADMIN ---
 const AdminRoute = ({ children }: RouteProps) => {
   const { isAuthenticated, user, loading } = useAuth();
   const role = user?.role || localStorage.getItem('role');
   
   if (loading) return <div className="flex items-center justify-center h-screen">Verificando permisos...</div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // Solo el ADMIN pasa de aquí
   if (role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
   
   return <>{children}</>;
@@ -36,7 +33,6 @@ const AdminRoute = ({ children }: RouteProps) => {
 
 const PublicRoute = ({ children }: RouteProps) => {
   const { isAuthenticated, loading } = useAuth();
-  
   if (loading) return null;
   return !isAuthenticated ? <>{children}</> : <Navigate to="/dashboard" replace />;
 };
@@ -48,15 +44,31 @@ function App() {
         {/* Rutas Públicas */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
-        {/* Rutas Protegidas (Cualquier usuario logueado) */}
+        {/* --- RUTAS PARA AMBOS (ADMIN Y TEACHER) --- */}
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        
-        {/* Perfil del usuario */}
         <Route path="/perfil" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        
+        {/* CAMBIO CLAVE: Laboratorios ahora es PrivateRoute para que el Teacher pueda entrar a ver */}
+        <Route 
+          path="/laboratorios" 
+          element={
+            <PrivateRoute>
+              <LaboratoryManagement />
+            </PrivateRoute>
+          } 
+        />
 
-        {/* --- SECCIÓN ADMINISTRATIVA --- */}
+        {/* CAMBIO CLAVE: Asignaciones ahora es PrivateRoute para que el Teacher vea su horario */}
+        <Route 
+          path="/asignaciones" 
+          element={
+            <PrivateRoute>
+              <AssignmentManagement />
+            </PrivateRoute>
+          } 
+        />
 
-        {/* Gestión de Usuarios */}
+        {/* --- SECCIÓN EXCLUSIVA PARA ADMIN --- */}
         <Route 
           path="/usuarios" 
           element={
@@ -65,29 +77,8 @@ function App() {
             </AdminRoute>
           } 
         />
-        
-        {/* Gestión de Laboratorios */}
-        <Route 
-          path="/laboratorios" 
-          element={
-            <AdminRoute>
-              <LaboratoryManagement />
-            </AdminRoute>
-          } 
-        />
 
-        {/* Gestión de Asignaciones (Reservas de horarios) */}
-        { <Route 
-          path="/asignaciones" 
-          element={
-            <AdminRoute>
-              <AssignmentManagement />
-            </AdminRoute>
-          } 
-        /> 
-        }
-
-        {/* Redirección global: Si la ruta no existe, va al login */}
+        {/* Redirección global */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
