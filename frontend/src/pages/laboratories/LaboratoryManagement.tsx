@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext'; // Importamos el contexto
 import { 
-  Beaker, Plus, Edit, Trash2, MapPin, 
-  Users as UsersIcon, X, Search
+  Beaker, Plus, Edit, Trash2, 
+  Users as UsersIcon, X
 } from 'lucide-react';
 import { getLaboratories, createLaboratory, updateLaboratory, deleteLaboratory } from '../../api/resource.api';
 
 const LaboratoryManagement = () => {
+  const { user } = useAuth(); // Obtenemos el usuario logueado
+  const role = user?.role || localStorage.getItem('role');
+  
   const [labs, setLabs] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLab, setEditingLab] = useState<any>(null);
@@ -73,25 +77,29 @@ const LaboratoryManagement = () => {
   const totalCapacity = labs.reduce((sum: number, lab: any) => sum + (lab.capacity || 0), 0);
 
   return (
-    <div className="p-6 md:p-10 bg-[#f8fafc] min-h-screen">
+    <div className="p-6 md:p-10 bg-[#f8fafc] min-h-screen font-sans">
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Gestión de Laboratorios</h1>
-            <p className="text-gray-500 text-lg mt-1 font-medium italic">Control de infraestructura y capacidad instalada.</p>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight italic">Laboratorios</h1>
+            <p className="text-gray-500 text-lg mt-1 font-medium">Control de infraestructura y capacidad instalada.</p>
           </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-[1.5rem] hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 font-bold text-lg"
-          >
-            <Plus size={24} strokeWidth={3} /> Nuevo Laboratorio
-          </button>
+          
+          {/* BOTÓN SOLO PARA ADMIN */}
+          {role === 'ADMIN' && (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-[1.5rem] hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 font-bold text-lg"
+            >
+              <Plus size={24} strokeWidth={3} /> Nuevo Laboratorio
+            </button>
+          )}
         </div>
 
         {/* Tarjetas de Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
           <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-5">
             <div className="bg-blue-50 p-4 rounded-2xl text-blue-600"><Beaker size={32} /></div>
             <div>
@@ -109,13 +117,15 @@ const LaboratoryManagement = () => {
         </div>
 
         {/* Tabla */}
-        <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
                 <th className="px-8 py-6 font-black text-gray-400 uppercase text-xs tracking-[0.2em]">Información Básica</th>
-                <th className="px-8 py-6 font-black text-gray-400 uppercase text-xs tracking-[0.2em]">Capacidad</th>
-                <th className="px-8 py-6 font-black text-gray-400 uppercase text-xs tracking-[0.2em] text-right">Acciones</th>
+                <th className="px-8 py-6 font-black text-gray-400 uppercase text-xs tracking-[0.2em] text-center">Capacidad</th>
+                {role === 'ADMIN' && (
+                   <th className="px-8 py-6 font-black text-gray-400 uppercase text-xs tracking-[0.2em] text-right">Acciones</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -132,33 +142,37 @@ const LaboratoryManagement = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-8">
+                  <td className="px-8 py-8 text-center">
                     <span className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-2xl text-sm font-black">
                       <UsersIcon size={16} /> {lab.capacity} pers.
                     </span>
                   </td>
-                  <td className="px-8 py-8 text-right">
-                    <div className="flex justify-end gap-3">
-                      <button 
-                        onClick={() => {
-                          setEditingLab(lab);
-                          setFormData({
-                            name: lab.name,
-                            capacity: lab.capacity,
-                            location: lab.location,
-                            description: lab.description || ''
-                          });
-                          setIsModalOpen(true);
-                        }}
-                        className="p-4 text-blue-600 hover:bg-blue-600 hover:text-white rounded-[1.5rem] transition-all duration-300"
-                      >
-                        <Edit size={22} />
-                      </button>
-                      <button onClick={() => handleDelete(lab.id)} className="p-4 text-red-500 hover:bg-red-500 hover:text-white rounded-[1.5rem] transition-all duration-300">
-                        <Trash2 size={22} />
-                      </button>
-                    </div>
-                  </td>
+                  
+                  {/* COLUMNA DE ACCIONES SOLO PARA ADMIN */}
+                  {role === 'ADMIN' && (
+                    <td className="px-8 py-8 text-right">
+                      <div className="flex justify-end gap-3">
+                        <button 
+                          onClick={() => {
+                            setEditingLab(lab);
+                            setFormData({
+                              name: lab.name,
+                              capacity: lab.capacity,
+                              location: lab.location,
+                              description: lab.description || ''
+                            });
+                            setIsModalOpen(true);
+                          }}
+                          className="p-4 text-blue-600 hover:bg-blue-600 hover:text-white rounded-[1.5rem] transition-all duration-300"
+                        >
+                          <Edit size={22} />
+                        </button>
+                        <button onClick={() => handleDelete(lab.id)} className="p-4 text-red-500 hover:bg-red-500 hover:text-white rounded-[1.5rem] transition-all duration-300">
+                          <Trash2 size={22} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -166,12 +180,12 @@ const LaboratoryManagement = () => {
         </div>
       </div>
 
-      {/* --- ESTE ES EL BLOQUE QUE FALTABA PARA QUE LOS BOTONES FUNCIONEN --- */}
+      {/* Modal - Solo accesible si se abre, y el Admin es quien lo abre */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-[3rem] w-full max-w-md shadow-2xl animate-in zoom-in duration-300">
             <div className="p-10 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+              <h2 className="text-3xl font-black text-gray-900 tracking-tight italic">
                 {editingLab ? 'Editar Lab' : 'Nuevo Registro'}
               </h2>
               <button onClick={closeModal} className="text-gray-300 hover:text-gray-900 transition-colors"><X size={32} strokeWidth={3} /></button>
