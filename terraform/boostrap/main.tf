@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "qa-terraform-state-21012023v3" # changes name bucket S3 to be unique
+  bucket = "qa-terraform-state-21012026mrcav3" # changes name bucket S3 to be unique
 
   lifecycle {
     prevent_destroy = true
