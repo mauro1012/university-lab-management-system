@@ -1,6 +1,6 @@
-# 1. Security Group para el ALB
+# 1. Security Group para el ALB (Uso de name_prefix)
 resource "aws_security_group" "alb" {
-  name        = "${var.env}-alb-sg"
+  name_prefix = "${var.env}-alb-sg-" # AWS añadirá un sufijo aleatorio único
   description = "Public HTTP access for ALB"
   vpc_id      = var.vpc_id
 
@@ -18,6 +18,11 @@ resource "aws_security_group" "alb" {
     to_port          = 0
     protocol         = "-1"
     cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  # Evita errores al actualizar recursos dependientes
+  lifecycle {
+    create_before_destroy = true
   }
 
   tags = {
@@ -45,7 +50,7 @@ resource "aws_lb_target_group" "auth" {
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/health" # Coincide con @Get('health') en NestJS
+    path                = "/health"
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
@@ -63,7 +68,7 @@ resource "aws_lb_target_group" "resource" {
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/health" # Coincide con @Get('health') en NestJS
+    path                = "/health"
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30

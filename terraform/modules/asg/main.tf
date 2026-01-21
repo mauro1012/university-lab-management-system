@@ -1,5 +1,6 @@
+# 1. Security Group del ASG (Uso de name_prefix)
 resource "aws_security_group" "asg" {
-  name        = "${var.env}-${var.service_name}-asg-sg"
+  name_prefix = "${var.env}-${var.service_name}-asg-sg-"
   description = "Security group for ${var.service_name}"
   vpc_id      = var.vpc_id
 
@@ -26,9 +27,14 @@ resource "aws_security_group" "asg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   tags = { Name = "${var.env}-${var.service_name}-asg-sg" }
 }
 
+# 2. Launch Template
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.env}-${var.service_name}-lt-"
   image_id      = data.aws_ami.amazon_linux.id
@@ -69,6 +75,7 @@ EOF
   lifecycle { create_before_destroy = true }
 }
 
+# 3. Auto Scaling Group
 resource "aws_autoscaling_group" "this" {
   name                      = "${var.env}-${var.service_name}-asg"
   desired_capacity          = var.desired_capacity

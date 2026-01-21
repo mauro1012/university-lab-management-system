@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Elimina cualquier rastro de configuraciones locales o de otros entornos
+      # Limpieza profunda para evitar conflictos de estado local
       - name: Clean Terraform artifacts
         run: |
           find . -name ".terraform" -type d -exec rm -rf {} +
@@ -51,32 +51,25 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      # --- PASO DE BOOSTSTRAP (Crea el Bucket S3 en el nuevo laboratorio) ---
+      # --- PASO DE BOOSTSTRAP MEJORADO ---
       - name: Terraform Bootstrap
         working-directory: terraform/boostrap
         run: |
-          terraform init -reconfigure
-          
-          # 1. Intentar importar el Bucket S3 si ya existe
-          terraform import aws_s3_bucket.terraform_state qa-terraform-state-21012023v2 || echo "El bucket no existe o ya está en el estado"
-          
-          # 2. Intentar importar la Tabla DynamoDB si ya existe
-          terraform import aws_dynamodb_table.terraform_locks terraform-locks-qa || echo "La tabla no existe o ya está en el estado"
-          
-          # 3. Apply para asegurar que la configuración (versionado, cifrado) sea la correcta
-          terraform apply -auto-approve
-      # 5. Terraform Init & Apply QA (Conecta al nuevo S3)
+          terraform init -reconfigure -input=false
+          # Intentamos importar solo si ya existe, si no, continuamos al apply
+          terraform import aws_s3_bucket.terraform_state qa-terraform-state-21012023v2 || true
+          terraform import aws_dynamodb_table.terraform_locks terraform-locks-qa || true
+          terraform apply -auto-approve -input=false
+
+      # --- PASO 5: QA DEPLOY  ---
       - name: Terraform Init (QA)
         working-directory: terraform/qa
-        run: |
-          terraform init -reconfigure
-          # IMPORTANTE: Importamos el Security Group del ALB para que no intente duplicarlo
-          terraform import module.alb.aws_security_group.alb $(aws ec2 describe-security-groups --filters "Name=group-name,Values=qa-alb-sg" --query "SecurityGroups[0].GroupId" --output text) || echo "El SG no existe o ya está importado"
+        run: terraform init -reconfigure -input=false
 
       - name: Terraform Apply (QA)
         id: apply
         working-directory: terraform/qa
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -input=false
         env:
           TF_VAR_environment: "qa"
           TF_VAR_vpc_cidr: "10.0.0.0/16"
@@ -98,13 +91,12 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n\tExitOnForwardFailure yes" > ~/.ssh/config
 
-      # 7-8. Migraciones Prisma (Auth y Resource) con validación de puerto
+      # 7-8. Migraciones Prisma 
       - name: Run Auth Prisma Migrations
         working-directory: services/security-domain/auth-service
         run: |
           npm install prisma @prisma/client
-          RAW_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
-          RDS_ENDPOINT=$(echo $RAW_ENDPOINT | cut -d':' -f1)
+          RDS_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint | cut -d':' -f1)
           BASTION_IP=$(terraform -chdir=../../../terraform/qa output -raw bastion_public_ip)
           
           ssh -f -L 5433:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
@@ -121,8 +113,7 @@ jobs:
         working-directory: services/inventory-domain/resource-service
         run: |
           npm install prisma @prisma/client
-          RAW_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
-          RDS_ENDPOINT=$(echo $RAW_ENDPOINT | cut -d':' -f1)
+          RDS_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint | cut -d':' -f1)
           BASTION_IP=$(terraform -chdir=../../../terraform/qa output -raw bastion_public_ip)
           
           ssh -f -L 5434:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
@@ -135,7 +126,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
 
-      # 9. ALB DNS Final
       - name: Get ALB DNS
         working-directory: terraform/qa
         run: terraform output alb_dns_name
