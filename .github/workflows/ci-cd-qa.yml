@@ -68,7 +68,10 @@ jobs:
       # 5. Terraform Init & Apply QA (Conecta al nuevo S3)
       - name: Terraform Init (QA)
         working-directory: terraform/qa
-        run: terraform init -reconfigure 
+        run: |
+          terraform init -reconfigure
+          # IMPORTANTE: Importamos el Security Group del ALB para que no intente duplicarlo
+          terraform import module.alb.aws_security_group.alb $(aws ec2 describe-security-groups --filters "Name=group-name,Values=qa-alb-sg" --query "SecurityGroups[0].GroupId" --output text) || echo "El SG no existe o ya está importado"
 
       - name: Terraform Apply (QA)
         id: apply
