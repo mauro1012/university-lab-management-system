@@ -5,7 +5,8 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 1. Configurar validación global de datos de entrada
+  app.setGlobalPrefix('auth'); 
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -14,16 +15,17 @@ async function bootstrap() {
     }),
   );
 
-  // 2. Ajuste de CORS: Especificamos el origen para mayor seguridad
+  // 2. CORS (Añade el DNS de tu ALB para que el frontend pueda hablarle)
   app.enableCors({
-    origin: 'http://localhost:5173', // El puerto por defecto donde corre Vite
+    origin: '*', // En producción usa tu URL real, '*' para pruebas en QA es más fácil
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  // Solo un listen y en 0.0.0.0 para que AWS pueda entrar
+  await app.listen(port, '0.0.0.0');
   
-  console.log(`Servidor de Seguridad corriendo en: http://localhost:${port}`);
+  console.log(`Servidor de Auth corriendo en puerto: ${port}`);
 }
 bootstrap();

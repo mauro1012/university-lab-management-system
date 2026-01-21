@@ -16,9 +16,9 @@ variable "private_subnets" {
 }
 
 # --- Seguridad (Accesos) ---
-variable "asg_security_group_id" { 
-  description = "ID del Security Group de los microservicios para permitirles acceso al puerto 5432"
-  type        = string 
+variable "asg_security_group_ids" { 
+  description = "IDs del Security Group de los microservicios para permitirles acceso al puerto 5432"
+  type        = list(string)
 }
 
 variable "bastion_security_group_id" {

@@ -86,7 +86,10 @@ module "database" {
   private_subnets           = module.vpc.private_subnets
   
   # Usamos el SG de las instancias (asg_auth), NO del ALB
-  asg_security_group_id     = module.asg_auth.asg_security_group_id 
+  asg_security_group_ids    = [
+    module.asg_auth.asg_security_group_id,
+    module.asg_resource.asg_security_group_id
+  ]
 
   bastion_security_group_id = module.bastion.security_group_id
 

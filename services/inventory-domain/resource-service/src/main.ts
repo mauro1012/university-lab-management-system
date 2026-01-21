@@ -5,18 +5,26 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Activa la validación global para que funcionen los DTOs
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  // Prefijo para Resource
+  app.setGlobalPrefix('resource'); 
 
-  // Habilita CORS para permitir peticiones desde el frontend o Postman
-  app.enableCors();
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  app.enableCors({
+    origin: '*', 
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   const port = process.env.PORT || 3001;
-  await app.listen(port);
-  console.log(`Resource Service is running on: http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+  
+  console.log(`Servidor de Recursos corriendo en puerto: ${port}`);
 }
 bootstrap();

@@ -1,26 +1,25 @@
-# 1. Security Group para el ALB (Uso de name_prefix)
+# 1. Security Group para el ALB
 resource "aws_security_group" "alb" {
-  name_prefix = "${var.env}-alb-sg-" # AWS añadirá un sufijo aleatorio único
+  name_prefix = "${var.env}-alb-sg-"
   description = "Public HTTP access for ALB"
   vpc_id      = var.vpc_id
 
   ingress {
-    description      = "Allow HTTP from anywhere"
-    from_port        = 80
-    to_port          = 80
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
+    description = "Allow HTTP from anywhere"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    description      = "Allow all outbound traffic"
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Evita errores al actualizar recursos dependientes
   lifecycle {
     create_before_destroy = true
   }
@@ -42,7 +41,7 @@ resource "aws_lb" "this" {
   }
 }
 
-# Target Group para Auth Service (Puerto 3000)
+# 3. Target Group para Auth Service (Puerto 3000)
 resource "aws_lb_target_group" "auth" {
   name     = "${var.env}-auth-tg"
   port     = 3000
@@ -50,7 +49,8 @@ resource "aws_lb_target_group" "auth" {
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/health"
+    # Cambiado para coincidir con app.setGlobalPrefix('auth')
+    path                = "/auth/health" 
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
@@ -60,7 +60,7 @@ resource "aws_lb_target_group" "auth" {
   }
 }
 
-# Target Group para Resource Service (Puerto 3001)
+# 4. Target Group para Resource Service (Puerto 3001)
 resource "aws_lb_target_group" "resource" {
   name     = "${var.env}-resource-tg"
   port     = 3001
@@ -68,7 +68,8 @@ resource "aws_lb_target_group" "resource" {
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/health"
+    # Cambiado para coincidir con app.setGlobalPrefix('resource')
+    path                = "/resource/health" 
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
@@ -78,7 +79,7 @@ resource "aws_lb_target_group" "resource" {
   }
 }
 
-# Listener principal
+# 5. Listener principal
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
@@ -94,7 +95,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# Reglas de ruteo
+# 6. Regla de ruteo para Auth
 resource "aws_lb_listener_rule" "auth_rule" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 100
@@ -104,11 +105,12 @@ resource "aws_lb_listener_rule" "auth_rule" {
   }
   condition {
     path_pattern {
-      values = ["/auth/*", "/api/auth/*"]
+      values = ["/auth/*"]
     }
   }
 }
 
+# 7. Regla de ruteo para Resource
 resource "aws_lb_listener_rule" "resource_rule" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 110
@@ -118,7 +120,8 @@ resource "aws_lb_listener_rule" "resource_rule" {
   }
   condition {
     path_pattern {
-      values = ["/resource/*", "/api/resource/*", "/laboratories/*", "/assignments/*"]
+      # Mantenemos las rutas consistentes con el prefijo /resource/
+      values = ["/resource/*", "/laboratories/*", "/assignments/*"]
     }
   }
 }
