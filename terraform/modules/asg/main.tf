@@ -1,13 +1,3 @@
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-2023*-x86_64"]
-  }
-}
-
 resource "aws_security_group" "asg" {
   name        = "${var.env}-${var.service_name}-asg-sg"
   description = "Security group for ${var.service_name}"
