@@ -39,8 +39,11 @@ module "database" {
   vpc_id                = module.vpc.vpc_id
   private_subnets       = module.vpc.private_subnets
   
-  # Seguridad: Permite tráfico desde los microservicios y el Bastion
+  # Seguridad: Permite tráfico desde el ALB/ASG 
   asg_security_group_id = module.alb.security_group_id 
+
+  # NUEVO: Pasamos el ID del Bastion para que el módulo RDS cree la regla de entrada automática
+  bastion_security_group_id = module.bastion.security_group_id
 
   # Uso de variables para evitar datos "quemados"
   db_name     = var.db_name
@@ -58,7 +61,6 @@ module "asg_auth" {
   docker_image = var.docker_image_auth
   app_port     = 3000
   
-  # Construcción dinámica de la URL de base de datos
   database_url = "postgresql://${var.db_user}:${var.db_password}@${module.database.db_endpoint}/${var.db_name}"
   
   instance_type    = var.instance_type
@@ -82,7 +84,6 @@ module "asg_resource" {
   docker_image = var.docker_image_resource
   app_port     = 3001
   
-  # Construcción dinámica de la URL de base de datos
   database_url = "postgresql://${var.db_user}:${var.db_password}@${module.database.db_endpoint}/${var.db_name}"
 
   instance_type    = var.instance_type

@@ -29,7 +29,7 @@ jobs:
           docker build -t mauro28102023/resource-service:qa ./services/inventory-domain/resource-service
           docker push mauro28102023/resource-service:qa
 
-      # 3. AWS credentials
+      # 3. AWS credentials (IMPORTANTE: Deben ser las del nuevo laboratorio)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -38,22 +38,42 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      # 4. Terraform Setup & Apply
+      # 4. Terraform Setup
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
 
-      - name: Terraform Init
+      # --- NUEVO PASO: BOOTSTRAP PARA EL NUEVO LABORATORIO ---
+      - name: Terraform Bootstrap (Create S3 & DynamoDB)
+        working-directory: terraform/bootstrap
+        run: |
+          terraform init -reconfigure
+          terraform apply -auto-approve
+
+      # 5. Terraform Init & Apply QA
+      - name: Terraform Init (QA)
         working-directory: terraform/qa
-        run: terraform init
+        run: terraform init -reconfigure # Forzamos la nueva configuración del backend
 
       - name: Terraform Apply (QA)
         id: apply
         working-directory: terraform/qa
         run: terraform apply -auto-approve
+        env:
+          TF_VAR_environment: "qa"
+          TF_VAR_vpc_cidr: "10.0.0.0/16"
+          TF_VAR_instance_type: "t3.micro"
+          TF_VAR_key_name: "fisrkeys"
+          TF_VAR_bastion_key_name: "fisrkeys"
+          TF_VAR_bastion_ami_id: "ami-0c02fb55956c7d316"
+          TF_VAR_docker_image_auth: "mauro28102023/auth-service:qa"
+          TF_VAR_docker_image_resource: "mauro28102023/resource-service:qa"
+          TF_VAR_db_name: ${{ secrets.DB_NAME }}
+          TF_VAR_db_user: ${{ secrets.DB_USER }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
-      # 5. Configurar llave SSH para Túneles
+      # 6. Configurar llave SSH para Túneles
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
@@ -61,7 +81,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n\tExitOnForwardFailure yes" > ~/.ssh/config
 
-      # 6. Migraciones para Auth Service
+      # 7. Migraciones para Auth Service
       - name: Run Auth Prisma Migrations
         working-directory: services/security-domain/auth-service
         run: |
@@ -74,18 +94,17 @@ jobs:
           echo "Abriendo túnel Auth en puerto 5433..."
           ssh -f -L 5433:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
           
-          # Validación activa del puerto
           echo "Esperando conexión a base de datos..."
           timeout 30s bash -c 'until printf "" 2>>/dev/null >/dev/tcp/localhost/5433; do sleep 2; echo "Reintentando..."; done' || (echo "Error: No se pudo conectar a la DB" && exit 1)
           
-          export DATABASE_URL="postgresql://dbadmin:SecurePassword123!@localhost:5433/university_db"
+          export DATABASE_URL="postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@localhost:5433/${{ secrets.DB_NAME }}"
           npx prisma migrate deploy
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
 
-      # 7. Migraciones para Resource Service
+      # 8. Migraciones para Resource Service
       - name: Run Resource Prisma Migrations
         working-directory: services/inventory-domain/resource-service
         run: |
@@ -101,14 +120,14 @@ jobs:
           echo "Esperando conexión a base de datos..."
           timeout 30s bash -c 'until printf "" 2>>/dev/null >/dev/tcp/localhost/5434; do sleep 2; echo "Reintentando..."; done' || (echo "Error: No se pudo conectar a la DB" && exit 1)
           
-          export DATABASE_URL="postgresql://dbadmin:SecurePassword123!@localhost:5434/university_db"
+          export DATABASE_URL="postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@localhost:5434/${{ secrets.DB_NAME }}"
           npx prisma migrate deploy
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
 
-      # 8. Mostrar URL del balanceador
+      # 9. Mostrar URL del balanceador
       - name: Get ALB DNS
         working-directory: terraform/qa
         run: terraform output alb_dns_name

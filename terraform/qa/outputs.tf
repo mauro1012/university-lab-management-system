@@ -1,10 +1,10 @@
-# URL Completa para que Prisma se conecte (Usada en el Workflow)
+# URL Completa para que los microservicios se conecten internamente
 output "rds_url" {
-  value     = "postgresql://${var.db_user}:${var.db_password}@${module.database.db_endpoint}/university_db"
+  value     = "postgresql://${var.db_user}:${var.db_password}@${module.database.db_endpoint}/${var.db_name}"
   sensitive = true 
 }
 
-# DNS del Balanceador (Para entrar a tu App desde el navegador)
+# DNS del Balanceador (Para entrar a App)
 output "alb_dns_name" {
   value = module.alb.alb_dns_name
 }
@@ -14,7 +14,8 @@ output "bastion_public_ip" {
   value = module.bastion.public_ip 
 }
 
-# Host de la Base de Datos (Para el túnel SSH)
+# Host de la Base de Datos (Limpiamos el puerto para el túnel SSH)
 output "rds_endpoint" {
-  value = module.database.db_endpoint
+  # Usamos split para asegurar que solo enviamos el HOST sin el :5432
+  value = split(":", module.database.db_endpoint)[0]
 }
