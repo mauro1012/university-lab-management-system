@@ -1,32 +1,41 @@
-# Security Group para el ALB
+# 1. Security Group para el ALB
 resource "aws_security_group" "alb" {
-  name   = "${var.env}-alb-sg"
-  vpc_id = var.vpc_id
+  name        = "${var.env}-alb-sg"
+  description = "Public HTTP access for ALB"
+  vpc_id      = var.vpc_id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "Allow HTTP from anywhere"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "Allow all outbound traffic"
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.env}-alb-sg"
   }
 }
 
-# El Load Balancer
+# 2. El Application Load Balancer
 resource "aws_lb" "this" {
   name               = "${var.env}-alb"
   load_balancer_type = "application"
   subnets            = var.public_subnets
   security_groups    = [aws_security_group.alb.id]
-}
 
-# --- TARGET GROUPS ---
+  tags = {
+    Name = "${var.env}-alb"
+  }
+}
 
 # Target Group para Auth Service (Puerto 3000)
 resource "aws_lb_target_group" "auth" {
@@ -36,13 +45,13 @@ resource "aws_lb_target_group" "auth" {
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/health" # Asegúrate de tener esta ruta en NestJS
+    path                = "/health" # Coincide con @Get('health') en NestJS
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
-    unhealthy_threshold = 2
+    unhealthy_threshold = 3
   }
 }
 
@@ -54,25 +63,22 @@ resource "aws_lb_target_group" "resource" {
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/health"
+    path                = "/health" # Coincide con @Get('health') en NestJS
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
-    unhealthy_threshold = 2
+    unhealthy_threshold = 3
   }
 }
 
-# --- LISTENER & RULES ---
-
-# Listener principal en puerto 80
+# Listener principal
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
   protocol          = "HTTP"
 
-  # Acción por defecto (si la ruta no coincide con ninguna regla)
   default_action {
     type = "fixed-response"
     fixed_response {
@@ -83,16 +89,14 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# Regla para redirigir tráfico a AUTH
+# Reglas de ruteo
 resource "aws_lb_listener_rule" "auth_rule" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 100
-
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.auth.arn
   }
-
   condition {
     path_pattern {
       values = ["/auth/*", "/api/auth/*"]
@@ -100,16 +104,13 @@ resource "aws_lb_listener_rule" "auth_rule" {
   }
 }
 
-# Regla para redirigir tráfico a RESOURCE
 resource "aws_lb_listener_rule" "resource_rule" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 110
-
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.resource.arn
   }
-
   condition {
     path_pattern {
       values = ["/resource/*", "/api/resource/*", "/laboratories/*", "/assignments/*"]

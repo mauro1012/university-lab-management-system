@@ -1,16 +1,22 @@
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
 
-# Security Group - ASG
-
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023*-x86_64"]
+  }
+}
 
 resource "aws_security_group" "asg" {
   name        = "${var.env}-${var.service_name}-asg-sg"
-  description = "App instances SG"
+  description = "Security group for ${var.service_name}"
   vpc_id      = var.vpc_id
 
   ingress {
     description     = "App traffic from ALB"
-    from_port       = 8080
-    to_port         = 8080
+    from_port       = var.app_port
+    to_port         = var.app_port
     protocol        = "tcp"
     security_groups = [var.alb_security_group_id]
   }
@@ -30,40 +36,24 @@ resource "aws_security_group" "asg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "${var.env}-${var.service_name}-asg-sg"
-  }
+  tags = { Name = "${var.env}-${var.service_name}-asg-sg" }
 }
 
-
-# Launch Template
-
-
 resource "aws_launch_template" "this" {
-  name_prefix   = "${var.env}-${var.service_name}-lt"
+  name_prefix   = "${var.env}-${var.service_name}-lt-"
   image_id      = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
   key_name      = var.key_name
 
-  vpc_security_group_ids = [
-    aws_security_group.asg.id
-  ]
-
-  block_device_mappings {
-    device_name = "/dev/xvda"
-
-    ebs {
-      volume_size           = 40
-      volume_type           = "gp3"
-      delete_on_termination = true
-    }
-  }
+  vpc_security_group_ids = [aws_security_group.asg.id]
 
   user_data = base64encode(<<EOF
 #!/bin/bash
 set -e
-
 IMAGE="${var.docker_image}"
+PORT="${var.app_port}"
+DB_URL="${var.database_url}"
+SERVICE="${var.service_name}"
 
 yum update -y
 yum install -y docker
@@ -72,56 +62,41 @@ systemctl start docker
 usermod -aG docker ec2-user
 
 docker pull $IMAGE
-docker stop ${var.service_name} || true
-docker rm ${var.service_name} || true
+docker stop $SERVICE || true
+docker rm $SERVICE || true
 
 docker run -d \
-  --name ${var.service_name} \
-  -p ${var.app_port}:${var.app_port} \
+  --name $SERVICE \
+  -p $PORT:$PORT \
   --restart always \
-  -e DATABASE_URL="postgresql:"${var.database_url}" \
+  -e PORT=$PORT \
+  -e DATABASE_URL="$DB_URL" \
   -e JWT_SECRET="temp-secret" \
   $IMAGE
 EOF
   )
 
-  lifecycle {
-    create_before_destroy = true
-  }
+  lifecycle { create_before_destroy = true }
 }
 
-
-# Auto Scaling Group
-
-
 resource "aws_autoscaling_group" "this" {
-  name = "${var.env}-${var.service_name}-asg"
-
-  desired_capacity = var.desired_capacity
-  min_size         = var.min_size
-  max_size         = var.max_size
-
-  vpc_zone_identifier = var.private_subnets
-
-  target_group_arns = [
-    var.alb_target_group
-  ]
+  name                      = "${var.env}-${var.service_name}-asg"
+  desired_capacity          = var.desired_capacity
+  min_size                  = var.min_size
+  max_size                  = var.max_size
+  vpc_zone_identifier       = var.private_subnets
+  target_group_arns         = [var.alb_target_group]
+  health_check_type         = "ELB"
+  health_check_grace_period = 300
 
   launch_template {
     id      = aws_launch_template.this.id
     version = "$Latest"
   }
 
-  health_check_type         = "ELB"
-  health_check_grace_period = 180
-
   tag {
     key                 = "Name"
     value               = "${var.env}-${var.service_name}"
     propagate_at_launch = true
-  }
-
-  lifecycle {
-    ignore_changes = [desired_capacity]
   }
 }
