@@ -59,8 +59,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Desactiva la confirmación de host para evitar que el script se detenga
-          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null" > ~/.ssh/config
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n\tExitOnForwardFailure yes" > ~/.ssh/config
 
       # 6. Migraciones para Auth Service
       - name: Run Auth Prisma Migrations
@@ -68,17 +67,16 @@ jobs:
         run: |
           npm install prisma @prisma/client
           
-          # Limpieza de variables para evitar puertos duplicados
           RAW_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
           RDS_ENDPOINT=$(echo $RAW_ENDPOINT | cut -d':' -f1)
           BASTION_IP=$(terraform -chdir=../../../terraform/qa output -raw bastion_public_ip)
           
-          echo "Estableciendo túnel SSH hacia $RDS_ENDPOINT a través de $BASTION_IP"
-          
-          # Abrir túnel en segundo plano (-f) puerto local 5433
+          echo "Abriendo túnel Auth en puerto 5433..."
           ssh -f -L 5433:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
           
-          sleep 10 # Tiempo para el handshake SSH
+          # Validación activa del puerto
+          echo "Esperando conexión a base de datos..."
+          timeout 30s bash -c 'until printf "" 2>>/dev/null >/dev/tcp/localhost/5433; do sleep 2; echo "Reintentando..."; done' || (echo "Error: No se pudo conectar a la DB" && exit 1)
           
           export DATABASE_URL="postgresql://dbadmin:SecurePassword123!@localhost:5433/university_db"
           npx prisma migrate deploy
@@ -97,12 +95,11 @@ jobs:
           RDS_ENDPOINT=$(echo $RAW_ENDPOINT | cut -d':' -f1)
           BASTION_IP=$(terraform -chdir=../../../terraform/qa output -raw bastion_public_ip)
           
-          echo "Estableciendo túnel SSH hacia $RDS_ENDPOINT a través de $BASTION_IP"
-          
-          # Usamos un puerto local distinto (5434) para evitar conflictos
+          echo "Abriendo túnel Resource en puerto 5434..."
           ssh -f -L 5434:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
           
-          sleep 10
+          echo "Esperando conexión a base de datos..."
+          timeout 30s bash -c 'until printf "" 2>>/dev/null >/dev/tcp/localhost/5434; do sleep 2; echo "Reintentando..."; done' || (echo "Error: No se pudo conectar a la DB" && exit 1)
           
           export DATABASE_URL="postgresql://dbadmin:SecurePassword123!@localhost:5434/university_db"
           npx prisma migrate deploy
