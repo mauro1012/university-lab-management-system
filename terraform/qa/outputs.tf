@@ -1,7 +1,7 @@
 # URL Completa para que los microservicios se conecten internamente
 output "rds_url" {
-  value     = "postgresql://${var.db_user}:${var.db_password}@${module.database.db_endpoint}/${var.db_name}"
-  sensitive = true 
+  value     = "postgresql://${var.db_user}:${var.db_password}@${module.database.rds_endpoint}/${var.db_name}"
+  sensitive = true
 }
 
 # DNS del Balanceador (Para entrar a App)
@@ -16,6 +16,5 @@ output "bastion_public_ip" {
 
 # Host de la Base de Datos (Limpiamos el puerto para el túnel SSH)
 output "rds_endpoint" {
-  # Usamos split para asegurar que solo enviamos el HOST sin el :5432
-  value = split(":", module.database.db_endpoint)[0]
+  value = split(":", module.database.rds_endpoint)[0]
 }
