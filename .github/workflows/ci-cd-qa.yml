@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 2. Build & Push 
+      # 2. Build & Push Docker images
       - name: Build & Push Docker images
         run: |
           docker build -t mauro28102023/auth-service:qa ./services/security-domain/auth-service
@@ -38,7 +38,7 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      # 4. Terraform
+      # 4. Terraform Setup & Apply
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -53,14 +53,14 @@ jobs:
         working-directory: terraform/qa
         run: terraform apply -auto-approve
 
-      # 5. Configurar llave SSH
+      # 5. Configurar llave SSH para Túneles
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Añadir host de AWS a conocidos para evitar confirmación manual
-          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          # Desactiva la confirmación de host para evitar que el script se detenga
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null" > ~/.ssh/config
 
       # 6. Migraciones para Auth Service
       - name: Run Auth Prisma Migrations
@@ -68,13 +68,17 @@ jobs:
         run: |
           npm install prisma @prisma/client
           
+          # Limpieza de variables para evitar puertos duplicados
+          RAW_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
+          RDS_ENDPOINT=$(echo $RAW_ENDPOINT | cut -d':' -f1)
           BASTION_IP=$(terraform -chdir=../../../terraform/qa output -raw bastion_public_ip)
-          RDS_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
           
-          # Ajuste: se añade -f para background y se limpia la cadena del túnel
-          ssh -o StrictHostKeyChecking=no -f -L 5433:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
+          echo "Estableciendo túnel SSH hacia $RDS_ENDPOINT a través de $BASTION_IP"
           
-          sleep 10 # Más tiempo para asegurar el handshake
+          # Abrir túnel en segundo plano (-f) puerto local 5433
+          ssh -f -L 5433:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
+          
+          sleep 10 # Tiempo para el handshake SSH
           
           export DATABASE_URL="postgresql://dbadmin:SecurePassword123!@localhost:5433/university_db"
           npx prisma migrate deploy
@@ -89,11 +93,14 @@ jobs:
         run: |
           npm install prisma @prisma/client
           
+          RAW_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
+          RDS_ENDPOINT=$(echo $RAW_ENDPOINT | cut -d':' -f1)
           BASTION_IP=$(terraform -chdir=../../../terraform/qa output -raw bastion_public_ip)
-          RDS_ENDPOINT=$(terraform -chdir=../../../terraform/qa output -raw rds_endpoint)
           
-          # Usamos un puerto local distinto (5434) para evitar conflictos si el túnel anterior sigue vivo
-          ssh -o StrictHostKeyChecking=no -f -L 5434:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
+          echo "Estableciendo túnel SSH hacia $RDS_ENDPOINT a través de $BASTION_IP"
+          
+          # Usamos un puerto local distinto (5434) para evitar conflictos
+          ssh -f -L 5434:$RDS_ENDPOINT:5432 ec2-user@$BASTION_IP -N
           
           sleep 10
           
@@ -103,3 +110,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      # 8. Mostrar URL del balanceador
+      - name: Get ALB DNS
+        working-directory: terraform/qa
+        run: terraform output alb_dns_name
