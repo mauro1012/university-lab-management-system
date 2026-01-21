@@ -1,4 +1,4 @@
-output "db_endpoint" {
+output "rds_endpoint" {
   description = "El endpoint de la base de datos (host:puerto)"
   value       = aws_db_instance.this.endpoint
 }
@@ -9,7 +9,7 @@ output "db_user" {
 }
 
 output "db_password" {
-  description = "La contraseña del administrador (marcada como sensible)"
+  description = "La contraseña del administrador"
   value       = var.db_password
   sensitive   = true 
 }

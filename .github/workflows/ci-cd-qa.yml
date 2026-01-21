@@ -57,7 +57,7 @@ jobs:
         run: |
           terraform init -reconfigure -input=false
           # Intentamos importar solo si ya existe, si no, continuamos al apply
-          terraform import aws_s3_bucket.terraform_state qa-terraform-state-21012023v2 || true
+          terraform import aws_s3_bucket.terraform_state qa-terraform-state-21012026mrcav3 || true
           terraform import aws_dynamodb_table.terraform_locks terraform-locks-qa || true
           terraform apply -auto-approve -input=false
 

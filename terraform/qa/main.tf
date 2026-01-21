@@ -32,28 +32,7 @@ module "alb" {
   public_subnets = module.vpc.public_subnets
 }
 
-# 3. Base de Datos Centralizada (RDS)
-module "database" {
-  source                = "../modules/rds"
-  env                   = var.environment
-  vpc_id                = module.vpc.vpc_id
-  private_subnets       = module.vpc.private_subnets
-  
-  # Seguridad: Permite tráfico desde el ALB/ASG 
-  asg_security_group_id = module.alb.security_group_id 
-
-  # NUEVO: Pasamos el ID del Bastion para que el módulo RDS cree la regla de entrada automática
-  bastion_security_group_id = module.bastion.security_group_id
-
-  # Uso de variables para evitar datos "quemados"
-  db_name     = var.db_name
-  db_user     = var.db_user
-  db_password = var.db_password
-}
-
-# 4. Microservicios (ASG)
-
-# Instancia para Auth Service
+# 4. Microservicios (ASG) -obtenemos sus IDs de Seguridad
 module "asg_auth" {
   source       = "../modules/asg"
   env          = var.environment
@@ -61,7 +40,8 @@ module "asg_auth" {
   docker_image = var.docker_image_auth
   app_port     = 3000
   
-  database_url = "postgresql://${var.db_user}:${var.db_password}@${module.database.db_endpoint}/${var.db_name}"
+  # Usamos rds_endpoint que se definio en los outputs
+  database_url = "postgresql://${var.db_user}:${var.db_password}@${module.database.rds_endpoint}/${var.db_name}"
   
   instance_type    = var.instance_type
   key_name         = var.key_name
@@ -76,7 +56,6 @@ module "asg_auth" {
   bastion_security_group_id = module.bastion.security_group_id
 }
 
-# Instancia para Resource/Inventory Service
 module "asg_resource" {
   source       = "../modules/asg"
   env          = var.environment
@@ -84,7 +63,7 @@ module "asg_resource" {
   docker_image = var.docker_image_resource
   app_port     = 3001
   
-  database_url = "postgresql://${var.db_user}:${var.db_password}@${module.database.db_endpoint}/${var.db_name}"
+  database_url = "postgresql://${var.db_user}:${var.db_password}@${module.database.rds_endpoint}/${var.db_name}"
 
   instance_type    = var.instance_type
   key_name         = var.key_name
@@ -97,4 +76,21 @@ module "asg_resource" {
   alb_security_group_id     = module.alb.security_group_id
   alb_target_group          = module.alb.resource_target_group_arn 
   bastion_security_group_id = module.bastion.security_group_id
+}
+
+# 3. Base de Datos Centralizada (RDS) - 
+module "database" {
+  source                    = "../modules/rds"
+  env                       = var.environment
+  vpc_id                    = module.vpc.vpc_id
+  private_subnets           = module.vpc.private_subnets
+  
+  # Usamos el SG de las instancias (asg_auth), NO del ALB
+  asg_security_group_id     = module.asg_auth.asg_security_group_id 
+
+  bastion_security_group_id = module.bastion.security_group_id
+
+  db_name     = var.db_name
+  db_user     = var.db_user
+  db_password = var.db_password
 }
