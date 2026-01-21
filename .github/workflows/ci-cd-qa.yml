@@ -36,7 +36,7 @@ jobs:
           docker build -t mauro28102023/resource-service:qa ./services/inventory-domain/resource-service
           docker push mauro28102023/resource-service:qa
 
-      # 3. AWS credentials (Nuevas llaves de AWS Academy)
+      # 3. AWS credentials 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -56,6 +56,8 @@ jobs:
         working-directory: terraform/boostrap
         run: |
           terraform init -reconfigure
+          # Intentamos importar la tabla por si ya existe del intento fallido anterior
+          terraform import aws_dynamodb_table.terraform_locks terraform-locks-qa || echo "La tabla no existe o ya está importada, continuando..."
           terraform apply -auto-approve
 
       # 5. Terraform Init & Apply QA (Conecta al nuevo S3)
