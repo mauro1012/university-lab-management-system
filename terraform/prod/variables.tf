@@ -37,3 +37,8 @@ variable "resource_port" {
   type    = number
   default = 3001
 }
+
+variable "database_url" { type = string }
+variable "app_port"     { type = number }
+variable "environment"  { type = string }
+variable "key_name"     { type = string }
