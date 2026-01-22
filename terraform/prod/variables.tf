@@ -19,5 +19,21 @@ variable "bastion_key_name" {
 }
 
 variable "key_name" {
-  type =  string
+  type = string
+}
+
+# Estas son las que faltaban en tus errores
+variable "database_url" {
+  type      = string
+  sensitive = true
+}
+
+variable "auth_port" {
+  type    = number
+  default = 3000
+}
+
+variable "resource_port" {
+  type    = number
+  default = 3001
 }

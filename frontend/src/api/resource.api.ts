@@ -1,10 +1,11 @@
 import axios from 'axios';
 
 const resourceApi = axios.create({
-  baseURL: 'http://localhost:3001', // Puerto del Resource Service
+  // CAMBIO CLAVE: Añadir /resource al final de la URL
+  baseURL: 'http://localhost:3001/resource', 
 });
 
-// Interceptor para incluir el token JWT en cada petición
+// Interceptor para incluir el token JWT (Esto está perfecto, no lo toques)
 resourceApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -13,11 +14,11 @@ resourceApi.interceptors.request.use((config) => {
   return config;
 });
 
+// Ahora estas rutas llamarán automáticamente a /resource/laboratories, etc.
 export const getLaboratories = () => resourceApi.get('/laboratories');
 export const createLaboratory = (data: any) => resourceApi.post('/laboratories', data);
 export const updateLaboratory = (id: string, data: any) => resourceApi.patch(`/laboratories/${id}`, data);
 export const deleteLaboratory = (id: string) => resourceApi.delete(`/laboratories/${id}`);
-
 
 export const getAssignments = () => resourceApi.get('/assignments');
 export const createAssignment = (data: any) => resourceApi.post('/assignments', data);

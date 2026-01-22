@@ -1,14 +1,19 @@
 import axios from 'axios';
 
-// Configuring the Axios instance for the authentication API
+/**
+ * Configuración de la instancia de Axios para el servicio de Autenticación.
+ * Al incluir '/auth' en la baseURL, todas las funciones simplifican sus rutas
+ * y evitamos errores de rutas duplicadas o no encontradas (404).
+ */
 export const authApi = axios.create({
-  baseURL: 'http://localhost:3000', 
- // headers: {
- //   'Content-Type': 'application/json',
-  //},
+  baseURL: 'http://localhost:3000/auth', 
 });
 
-// Interceptor para incluir el token del ADMIN en la petición de registro
+/**
+ * Interceptor para incluir el token JWT en las cabeceras.
+ * Esto permite que las rutas protegidas (como las de usuarios) 
+ * reconozcan que somos un ADMIN.
+ */
 authApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -17,19 +22,38 @@ authApi.interceptors.request.use((config) => {
   return config;
 });
 
-export const registerUser = (data: any) => authApi.post('/auth/register', data);
+/**
+ * FUNCIONES DE AUTENTICACIÓN
+ * El prefijo '/auth' ya está incluido por la baseURL.
+ */
 
-// Obtener todos los usuarios
+// Iniciar sesión (Login)
+// Ruta final: http://localhost:3000/auth/login
+export const loginUser = (data: any) => authApi.post('/login', data);
+
+// Registrar un nuevo usuario (ADMIN solamente)
+// Ruta final: http://localhost:3000/auth/register
+export const registerUser = (data: any) => authApi.post('/register', data);
+
+// Cambiar la contraseña del usuario actual
+// Ruta final: http://localhost:3000/auth/change-password
+export const changePassword = (data: any) => authApi.post('/change-password', data);
+
+
+/**
+ * FUNCIONES DE GESTIÓN DE USUARIOS
+ */
+
+// Obtener la lista de todos los usuarios
+// Ruta final: http://localhost:3000/auth/users
 export const getUsers = () => authApi.get('/users');
 
-// Actualizar un usuario existente
+// Actualizar datos de un usuario por ID
+// Ruta final: http://localhost:3000/auth/users/:id
 export const updateUser = (id: string, data: any) => authApi.patch(`/users/${id}`, data);
 
-// Eliminar un usuario
+// Eliminar un usuario del sistema
+// Ruta final: http://localhost:3000/auth/users/:id
 export const deleteUser = (id: string) => authApi.delete(`/users/${id}`);
 
-// Cambiar la contraseña del usuario autenticado
-export const loginUser = (data: any) => authApi.post('/auth/login', data);
-
-// Cambiar la contraseña del usuario autenticado
-export const changePassword = (data: any) => authApi.post('/auth/change-password', data);
+export default authApi;
