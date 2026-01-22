@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Prefijo para que coincida con la ruta del Balanceador (ALB)
   app.setGlobalPrefix('auth'); 
 
   app.useGlobalPipes(
@@ -15,17 +16,22 @@ async function bootstrap() {
     }),
   );
 
-  // 2. CORS (Añade el DNS de tu ALB para que el frontend pueda hablarle)
+  // CONFIGURACIÓN DE CORS
   app.enableCors({
-    origin: '*', // En producción usa tu URL real, '*' para pruebas en QA es más fácil
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: [
+      'http://localhost:5173',
+      'https://university-lab-management-system.vercel.app', // link de Vercel
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type, Authorization',
   });
 
   const port = process.env.PORT || 3000;
-  // Solo un listen y en 0.0.0.0 para que AWS pueda entrar
+  
+  // Importante: '0.0.0.0' permite conexiones externas en AWS
   await app.listen(port, '0.0.0.0');
   
-  console.log(`Servidor de Auth corriendo en puerto: ${port}`);
+  console.log(`Servidor de Auth corriendo en: http://0.0.0.0:${port}/auth`);
 }
 bootstrap();
