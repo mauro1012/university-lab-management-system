@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const resourceApi = axios.create({
-  // CAMBIO CLAVE: Añadir /resource al final de la URL
-  baseURL: 'http://localhost:3001/resource', 
-});
+const BASE_URL = import.meta.env.VITE_API_RESOURCE_URL || 'http://localhost:3001/resource';
+
+export const resourceApi = axios.create({
+  baseURL: BASE_URL,
+})
 
 // Interceptor para incluir el token JWT (Esto está perfecto, no lo toques)
 resourceApi.interceptors.request.use((config) => {

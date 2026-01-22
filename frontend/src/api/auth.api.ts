@@ -5,8 +5,10 @@ import axios from 'axios';
  * Al incluir '/auth' en la baseURL, todas las funciones simplifican sus rutas
  * y evitamos errores de rutas duplicadas o no encontradas (404).
  */
+const BASE_URL = import.meta.env.VITE_API_AUTH_URL || 'http://localhost:3000/auth';
+
 export const authApi = axios.create({
-  baseURL: 'http://localhost:3000/auth', 
+  baseURL: BASE_URL, 
 });
 
 /**
