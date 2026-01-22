@@ -217,7 +217,8 @@ const AssignmentManagement = () => {
     setIsModalOpen(true);
   };
 
-  // Función para verificar conflictos de horario
+  
+  // Función para verificar conflictos de horario optimizada
   const checkForConflicts = () => {
     if (!formData.laboratoryId || !formData.startTime || !formData.endTime) {
       setConflictCheck({hasConflict: false, conflicts: []});
@@ -225,93 +226,65 @@ const AssignmentManagement = () => {
     }
 
     try {
-      // Crear fechas en hora de Ecuador
-      let startDateTime: Date;
-      let endDateTime: Date;
-      let endMonthDate: Date | null = null;
-      
-      if (formData.isRecurring) {
-        startDateTime = new Date(`${formData.startMonthYear}-01T${formData.startTime}:00`);
-        endDateTime = new Date(`${formData.startMonthYear}-01T${formData.endTime}:00`);
-        endMonthDate = new Date(`${formData.endMonthYear}-28T${formData.endTime}:00`);
-      } else {
-        startDateTime = new Date(`${formData.singleDate}T${formData.startTime}:00`);
-        endDateTime = new Date(`${formData.singleDate}T${formData.endTime}:00`);
-      }
+      // 1. Preparar datos de la nueva reserva en minutos totales (Ecuador Time)
+      const [newStartH, newStartM] = formData.startTime.split(':').map(Number);
+      const [newEndH, newEndM] = formData.endTime.split(':').map(Number);
+      const newStartTotalMins = newStartH * 60 + newStartM;
+      const newEndTotalMins = newEndH * 60 + newEndM;
 
       const conflicts: Assignment[] = [];
-      
+
       assignments.forEach((assignment) => {
         // Excluir la reserva que estamos editando
         if (editingId && assignment.id === editingId) return;
         
-        // Solo verificar conflictos para el mismo laboratorio
+        // Regla de Oro: Solo hay conflicto si es el mismo Laboratorio
         if (assignment.laboratoryId !== formData.laboratoryId) return;
-        
-        const existingStart = new Date(assignment.startTime);
-        const existingEnd = new Date(assignment.endTime);
-        
-        if (formData.isRecurring && assignment.isRecurring) {
-          // CONFLICTO: Dos reservas semestrales recurrentes
-          // Verificar si los rangos de meses se superponen
-          const existingEndDate = assignment.endDate ? new Date(assignment.endDate) : existingEnd;
-          const newEndDate = endMonthDate || endDateTime;
+
+        // 2. Preparar datos de la reserva existente (Convertir UTC a Ecuador para comparar peras con peras)
+        const existingStartUTC = new Date(assignment.startTime);
+        const existingEndUTC = new Date(assignment.endTime);
+        const existingStartEcu = utcToEcuadorTime(existingStartUTC);
+        const existingEndEcu = utcToEcuadorTime(existingEndUTC);
+
+        const existingStartTotalMins = existingStartEcu.getHours() * 60 + existingStartEcu.getMinutes();
+        const existingEndTotalMins = existingEndEcu.getHours() * 60 + existingEndEcu.getMinutes();
+
+        // 3. Verificar superposición de Horas (Time Overlap)
+        // (StartA < EndB) && (EndA > StartB)
+        const timeOverlap = newStartTotalMins < existingEndTotalMins && newEndTotalMins > existingStartTotalMins;
+
+        if (timeOverlap) {
+          // 4. Si hay choque de horas, verificar choque de días/fechas según el tipo
           
-          // Verificar superposición de rangos de fechas
-          const rangesOverlap = !(newEndDate < existingStart || startDateTime > existingEndDate);
+          // CASO A: Ambas son recurrentes (Semestrales)
+          if (formData.isRecurring && assignment.isRecurring) {
+            const commonDays = assignment.daysOfWeek.filter(day => formData.daysOfWeek.includes(day));
+            if (commonDays.length > 0) conflicts.push(assignment);
+          } 
           
-          if (rangesOverlap) {
-            // Verificar si hay días de la semana en común
-            const commonDays = assignment.daysOfWeek.filter(day => 
-              formData.daysOfWeek.includes(day)
-            );
-            
-            if (commonDays.length > 0) {
-              // Verificar si las horas se superponen
-              const existingStartHour = existingStart.getUTCHours() * 60 + existingStart.getUTCMinutes();
-              const existingEndHour = existingEnd.getUTCHours() * 60 + existingEnd.getUTCMinutes();
-              const newStartHour = startDateTime.getHours() * 60 + startDateTime.getMinutes();
-              const newEndHour = endDateTime.getHours() * 60 + endDateTime.getMinutes();
-              
-              // Convertir a hora UTC para comparación
-              const newStartUTC = ecuadorToUTCTime(startDateTime);
-              const newEndUTC = ecuadorToUTCTime(endDateTime);
-              const newStartUTCHour = newStartUTC.getUTCHours() * 60 + newStartUTC.getUTCMinutes();
-              const newEndUTCHour = newEndUTC.getUTCHours() * 60 + newEndUTC.getUTCMinutes();
-              
-              const timeOverlap = !(newEndUTCHour <= existingStartHour || newStartUTCHour >= existingEndHour);
-              
-              if (timeOverlap) {
-                conflicts.push(assignment);
-              }
+          // CASO B: Ambas son día único
+          else if (!formData.isRecurring && !assignment.isRecurring) {
+            if (formData.singleDate === existingStartEcu.toISOString().split('T')[0]) {
+              conflicts.push(assignment);
             }
-          }
-        } else if (!formData.isRecurring && !assignment.isRecurring) {
-          // CONFLICTO: Dos reservas de día único
-          // Verificar si es el mismo día
-          const existingDateStr = existingStart.toISOString().split('T')[0];
-          const newDateStr = startDateTime.toISOString().split('T')[0];
+          } 
           
-          if (existingDateStr === newDateStr) {
-            // Verificar si las horas se superponen
-            const existingStartHour = existingStart.getUTCHours() * 60 + existingStart.getUTCMinutes();
-            const existingEndHour = existingEnd.getUTCHours() * 60 + existingEnd.getUTCMinutes();
-            const newStartUTC = ecuadorToUTCTime(startDateTime);
-            const newEndUTC = ecuadorToUTCTime(endDateTime);
-            const newStartUTCHour = newStartUTC.getUTCHours() * 60 + newStartUTC.getUTCMinutes();
-            const newEndUTCHour = newEndUTC.getUTCHours() * 60 + newEndUTC.getUTCMinutes();
+          // CASO C: Una recurrente y otra día único (Validación Cruzada)
+          else {
+            const recurring = formData.isRecurring ? formData : { ...assignment, singleDate: existingStartEcu.toISOString().split('T')[0] };
+            const single = formData.isRecurring ? { ...assignment, singleDate: existingStartEcu.toISOString().split('T')[0] } : formData;
             
-            const timeOverlap = !(newEndUTCHour <= existingStartHour || newStartUTCHour >= existingEndHour);
-            
-            if (timeOverlap) {
+            // Obtener el nombre del día de la semana de la reserva de día único (ej: "MONDAY")
+            const dateObj = new Date(single.singleDate + 'T12:00:00'); // T12 para evitar errores de zona horaria
+            const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+            const singleDayName = dayNames[dateObj.getDay()];
+
+            // Hay conflicto si el día de la reserva única está en la lista de días de la recurrente
+            if (recurring.daysOfWeek.includes(singleDayName)) {
               conflicts.push(assignment);
             }
           }
-        } else {
-          // CONFLICTO: Una reserva semestral y una de día único
-          // Esto es más complejo, necesitaríamos verificar cada día específico
-          // Por ahora, solo mostramos advertencia
-          conflicts.push(assignment);
         }
       });
 
