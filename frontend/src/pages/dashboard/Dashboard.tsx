@@ -4,7 +4,7 @@ import {
   LogOut, LayoutDashboard, Beaker, UserCog, 
   UserCircle, Calendar, Users as UsersIcon,
   ChevronRight, BarChart3, Settings, Clock,
-  TrendingUp, Shield, BookOpen
+  TrendingUp, Shield, BookOpen, Activity
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getLaboratories, getAssignments } from '../../api/resource.api';
@@ -129,6 +129,19 @@ const Dashboard = () => {
   ];
 
   const featureCards = [
+    
+    {
+      title: "Live Monitoring",
+      description: "Real-time laboratory availability and session status",
+      icon: <Activity size={28} />,
+      path: "/monitoring", // Esta ruta la configuramos en App.tsx
+      color: "emerald",
+      gradient: "bg-gradient-to-br from-emerald-50 to-teal-100",
+      iconBg: "bg-gradient-to-br from-emerald-500 to-teal-600",
+      hoverClass: "hover:shadow-xl hover:shadow-emerald-100/50",
+      badge: <div className="px-2 py-1 bg-emerald-500 text-white text-[10px] rounded-full font-black animate-pulse">LIVE</div>
+    },
+    
     {
       title: "Laboratories",
       description: "Manage and organize laboratory resources",

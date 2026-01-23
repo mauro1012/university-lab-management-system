@@ -51,3 +51,7 @@ variable "docker_image_resource" {
   description = "URL de la imagen de Docker para Resource"
 }
 
+variable "docker_image_status" {
+  type        = string
+  description = "URL de la imagen de Docker para el microservicio de Go (Lab Status)"
+}

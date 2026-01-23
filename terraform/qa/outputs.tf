@@ -18,3 +18,9 @@ output "bastion_public_ip" {
 output "rds_endpoint" {
   value = split(":", module.database.rds_endpoint)[0]
 }
+
+# DNS del Balanceador para el Microservicio de Go
+output "go_api_endpoint" {
+  value = "http://${module.alb.alb_dns_name}:8081"
+  description = "Endpoint público para el microservicio de Go"
+}
