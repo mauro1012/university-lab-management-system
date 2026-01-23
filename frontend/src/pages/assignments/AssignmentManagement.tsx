@@ -220,83 +220,140 @@ const AssignmentManagement = () => {
   
   // Función para verificar conflictos de horario optimizada
   const checkForConflicts = () => {
-    if (!formData.laboratoryId || !formData.startTime || !formData.endTime) {
-      setConflictCheck({hasConflict: false, conflicts: []});
-      return;
-    }
+  if (!formData.laboratoryId || !formData.startTime || !formData.endTime) {
+    setConflictCheck({ hasConflict: false, conflicts: [] });
+    return;
+  }
 
-    try {
-      // 1. Preparar datos de la nueva reserva en minutos totales (Ecuador Time)
-      const [newStartH, newStartM] = formData.startTime.split(':').map(Number);
-      const [newEndH, newEndM] = formData.endTime.split(':').map(Number);
-      const newStartTotalMins = newStartH * 60 + newStartM;
-      const newEndTotalMins = newEndH * 60 + newEndM;
+  try {
+    // 1. Nueva reserva (hora Ecuador en minutos)
+    const [newStartH, newStartM] = formData.startTime.split(':').map(Number);
+    const [newEndH, newEndM] = formData.endTime.split(':').map(Number);
 
-      const conflicts: Assignment[] = [];
+    const newStartTotalMins = newStartH * 60 + newStartM;
+    const newEndTotalMins = newEndH * 60 + newEndM;
 
-      assignments.forEach((assignment) => {
-        // Excluir la reserva que estamos editando
-        if (editingId && assignment.id === editingId) return;
-        
-        // Regla de Oro: Solo hay conflicto si es el mismo Laboratorio
-        if (assignment.laboratoryId !== formData.laboratoryId) return;
+    const conflicts: Assignment[] = [];
 
-        // 2. Preparar datos de la reserva existente (Convertir UTC a Ecuador para comparar peras con peras)
-        const existingStartUTC = new Date(assignment.startTime);
-        const existingEndUTC = new Date(assignment.endTime);
-        const existingStartEcu = utcToEcuadorTime(existingStartUTC);
-        const existingEndEcu = utcToEcuadorTime(existingEndUTC);
+    assignments.forEach((assignment) => {
+      // Ignorar el mismo registro cuando se edita
+      if (editingId && assignment.id === editingId) return;
 
-        const existingStartTotalMins = existingStartEcu.getHours() * 60 + existingStartEcu.getMinutes();
-        const existingEndTotalMins = existingEndEcu.getHours() * 60 + existingEndEcu.getMinutes();
+      // Solo validar mismo laboratorio
+      if (assignment.laboratoryId !== formData.laboratoryId) return;
 
-        // 3. Verificar superposición de Horas (Time Overlap)
-        // (StartA < EndB) && (EndA > StartB)
-        const timeOverlap = newStartTotalMins < existingEndTotalMins && newEndTotalMins > existingStartTotalMins;
+      // 2. Reserva existente (UTC → Ecuador)
+      const existingStartUTC = new Date(assignment.startTime);
+      const existingEndUTC = new Date(assignment.endTime);
 
-        if (timeOverlap) {
-          // 4. Si hay choque de horas, verificar choque de días/fechas según el tipo
-          
-          // CASO A: Ambas son recurrentes (Semestrales)
-          if (formData.isRecurring && assignment.isRecurring) {
-            const commonDays = assignment.daysOfWeek.filter(day => formData.daysOfWeek.includes(day));
-            if (commonDays.length > 0) conflicts.push(assignment);
-          } 
-          
-          // CASO B: Ambas son día único
-          else if (!formData.isRecurring && !assignment.isRecurring) {
-            if (formData.singleDate === existingStartEcu.toISOString().split('T')[0]) {
-              conflicts.push(assignment);
-            }
-          } 
-          
-          // CASO C: Una recurrente y otra día único (Validación Cruzada)
-          else {
-            const recurring = formData.isRecurring ? formData : { ...assignment, singleDate: existingStartEcu.toISOString().split('T')[0] };
-            const single = formData.isRecurring ? { ...assignment, singleDate: existingStartEcu.toISOString().split('T')[0] } : formData;
-            
-            // Obtener el nombre del día de la semana de la reserva de día único (ej: "MONDAY")
-            const dateObj = new Date(single.singleDate + 'T12:00:00'); // T12 para evitar errores de zona horaria
-            const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-            const singleDayName = dayNames[dateObj.getDay()];
+      const existingStartEcu = utcToEcuadorTime(existingStartUTC);
+      const existingEndEcu = utcToEcuadorTime(existingEndUTC);
 
-            // Hay conflicto si el día de la reserva única está en la lista de días de la recurrente
-            if (recurring.daysOfWeek.includes(singleDayName)) {
-              conflicts.push(assignment);
-            }
-          }
+      const existingStartTotalMins =
+        existingStartEcu.getHours() * 60 + existingStartEcu.getMinutes();
+      const existingEndTotalMins =
+        existingEndEcu.getHours() * 60 + existingEndEcu.getMinutes();
+
+      // 3. Validar solapamiento de horas
+      const timeOverlap =
+        newStartTotalMins < existingEndTotalMins &&
+        newEndTotalMins > existingStartTotalMins;
+
+      if (!timeOverlap) return;
+
+      /* ===========================
+         CASO A: ambas recurrentes
+      ============================ */
+      if (formData.isRecurring && assignment.isRecurring) {
+        const commonDays = assignment.daysOfWeek.filter((day) =>
+          formData.daysOfWeek.includes(day)
+        );
+        if (commonDays.length > 0) {
+          conflicts.push(assignment);
         }
-      });
+      }
 
-      setConflictCheck({
-        hasConflict: conflicts.length > 0,
-        conflicts
-      });
-    } catch (error) {
-      console.error("Error checking conflicts:", error);
-      setConflictCheck({hasConflict: false, conflicts: []});
-    }
-  };
+      /* ===========================
+         CASO B: ambas día único
+      ============================ */
+      else if (!formData.isRecurring && !assignment.isRecurring) {
+        const existingDate =
+          existingStartEcu.toISOString().split('T')[0];
+
+        if (formData.singleDate === existingDate) {
+          conflicts.push(assignment);
+        }
+      }
+
+      /* =================================================
+         CASO C: recurrente vs día único (CORREGIDO)
+      ================================================= */
+      else {
+        const recurring = formData.isRecurring ? formData : assignment;
+        const single = formData.isRecurring ? assignment : formData;
+
+        // Fecha del día único
+        let singleDateStr: string;
+
+        // Si el día único es el formulario
+        if (!formData.isRecurring) {
+          singleDateStr = formData.singleDate;
+        } 
+        // Si el día único es una asignación existente
+        else {
+          singleDateStr = utcToEcuadorTime(
+            new Date(assignment.startTime)
+         ).toISOString().split('T')[0];
+       }
+
+       const singleDateObj = new Date(singleDateStr + 'T12:00:00');
+
+
+        // Día de la semana del día único
+        const dayNames = [
+          'SUNDAY',
+          'MONDAY',
+          'TUESDAY',
+          'WEDNESDAY',
+          'THURSDAY',
+          'FRIDAY',
+          'SATURDAY'
+        ];
+        const singleDayName = dayNames[singleDateObj.getDay()];
+
+        // Rango REAL del semestre
+        const recurringStart = formData.isRecurring
+          ? new Date(`${formData.startMonthYear}-01T00:00:00`)
+          : utcToEcuadorTime(new Date(assignment.startTime));
+
+        const recurringEnd = formData.isRecurring
+          ? new Date(`${formData.endMonthYear}-28T23:59:59`)
+          : assignment.endDate
+            ? utcToEcuadorTime(new Date(assignment.endDate))
+            : utcToEcuadorTime(new Date(assignment.endTime));
+
+        // Conflicto SOLO si:
+        // - Coincide el día
+        // - La fecha del día único está dentro del semestre
+        if (
+          recurring.daysOfWeek.includes(singleDayName) &&
+          singleDateObj >= recurringStart &&
+          singleDateObj <= recurringEnd
+        ) {
+          conflicts.push(assignment);
+        }
+      }
+    });
+
+    setConflictCheck({
+      hasConflict: conflicts.length > 0,
+      conflicts
+    });
+  } catch (error) {
+    console.error('Error checking conflicts:', error);
+    setConflictCheck({ hasConflict: false, conflicts: [] });
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -351,20 +408,24 @@ const AssignmentManagement = () => {
         return;
       }
     } else {
-      if (!formData.singleDate) {
-        showNotification('error', 'Please select a date');
-        return;
-      }
+  if (!formData.singleDate) {
+    showNotification('error', 'Please select a date');
+    return;
+  }
 
-      const selectedDate = new Date(formData.singleDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (selectedDate < today) {
-        showNotification('error', 'Cannot create reservations for past dates');
-        return;
-      }
-    }
+  // 1. Obtenemos el "ahora" real en Ecuador
+  const nowInEcuador = utcToEcuadorTime(new Date());
+  
+  // 2. Creamos un objeto de fecha con la fecha y hora seleccionadas por el usuario
+  const selectedDateTime = new Date(`${formData.singleDate}T${formData.startTime}:00`);
+
+  // 3. Comparamos tiempo contra tiempo
+  // Esto permite programar hoy si la hora elegida es mayor a la actual
+  if (selectedDateTime < nowInEcuador) {
+    showNotification('error', 'The selected date or time has already passed');
+    return;
+  }
+}
 
     // Verificar conflictos antes de enviar
     if (conflictCheck.hasConflict) {
@@ -958,7 +1019,7 @@ const AssignmentManagement = () => {
                     type="date" 
                     required 
                     value={formData.singleDate}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={new Date().toLocaleDateString('sv-SE')} // Prevent past dates
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     onChange={(e) => setFormData({...formData, singleDate: e.target.value})}
                   />

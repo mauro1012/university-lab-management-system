@@ -6,6 +6,7 @@ import Dashboard from './pages/dashboard/Dashboard';
 import Profile from './pages/profile/Profile';
 import LaboratoryManagement from './pages/laboratories/LaboratoryManagement';
 import AssignmentManagement from './pages/assignments/AssignmentManagement';
+import MonitoringPage from './pages/monitoring/MonitoringPage'; 
 
 interface RouteProps {
   children: React.ReactNode;
@@ -47,8 +48,17 @@ function App() {
         {/* --- RUTAS PARA AMBOS (ADMIN Y TEACHER) --- */}
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/perfil" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        
-        {/* CAMBIO CLAVE: Laboratorios ahora es PrivateRoute para que el Teacher pueda entrar a ver */}
+
+        {/* Live Monitoring (Monitoreo en tiempo real) */}
+        <Route 
+          path="/monitoring" 
+          element={
+            <PrivateRoute>
+              <MonitoringPage />
+            </PrivateRoute>
+          } 
+        />
+
         <Route 
           path="/laboratorios" 
           element={
@@ -58,7 +68,6 @@ function App() {
           } 
         />
 
-        {/* CAMBIO CLAVE: Asignaciones ahora es PrivateRoute para que el Teacher vea su horario */}
         <Route 
           path="/asignaciones" 
           element={

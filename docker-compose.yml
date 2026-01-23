@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Contenedor de Redis (Base de datos en memoria)
+  lab-redis:
+    image: redis:7-alpine
+    container_name: lab-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - lab-network
+
+  # Tu nuevo Microservicio de Estado en Tiempo Real
+  lab-status-service:
+    build:
+      context: ./services/Monitoring-domain/lab-status-service
+      dockerfile: Dockerfile
+    container_name: lab-status-service
+    restart: always
+    ports:
+      - "8081:8080" # Mapeamos al 8081 para evitar choques con otros servicios
+    environment:
+      - REDIS_ADDR=lab-redis:6379
+    depends_on:
+      - lab-redis
+    networks:
+      - lab-network
+
+networks:
+  lab-network:
+    driver: bridge
