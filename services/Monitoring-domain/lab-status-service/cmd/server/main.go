@@ -30,6 +30,12 @@ func main() {
 	r.POST("/checkin/:id", handlers.CheckIn)
 	r.POST("/checkout/:id", handlers.CheckOut)
 	r.GET("/public/status/:id", handlers.GetPublicStatus)
+	r.GET("/health", func(c *gin.Context) {
+        c.JSON(200, gin.H{
+			"status": "UP",
+			"service": "lab-status-service",	
+		})
+    })
 
 	// 4. Arrancar el servidor en el puerto 8080 (interno del contenedor)
 	r.Run(":8080")
