@@ -32,8 +32,8 @@ export const LabGrid = () => {
       const baseUrl = import.meta.env.VITE_RESOURCE_API_URL || "http://qa-alb-1176272014.us-east-1.elb.amazonaws.com/resource";
 
       const [labsRes, assignRes] = await Promise.all([
-        fetch(`${baseUrl}/resource/laboratories`, { headers: { 'Authorization': 'Bearer ' + token } }),
-        fetch(`${baseUrl}/resource/assignments`, { headers: { 'Authorization': 'Bearer ' + token } })
+        fetch(`${baseUrl}/laboratories`, { headers: { 'Authorization': 'Bearer ' + token } }),
+        fetch(`${baseUrl}/assignments`, { headers: { 'Authorization': 'Bearer ' + token } })
       ]);
 
       const allLabs: Lab[] = await labsRes.json();
