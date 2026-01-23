@@ -29,7 +29,7 @@ export const LabGrid = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const baseUrl = import.meta.env.VITE_RESOURCES_API_URL || "http://localhost:3001";
+      const baseUrl = import.meta.env.VITE_RESOURCE_API_URL || "http://localhost:3001";
 
       const [labsRes, assignRes] = await Promise.all([
         fetch(`${baseUrl}/resource/laboratories`, { headers: { 'Authorization': 'Bearer ' + token } }),
