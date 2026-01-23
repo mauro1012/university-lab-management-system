@@ -39,38 +39,60 @@ export const LabGrid = () => {
       const allLabs: Lab[] = await labsRes.json();
       const allAssignments: Assignment[] = await assignRes.json();
 
-      // --- LOCAL TIME LOGIC ---
+      // --- LOGICA DE TIEMPO LOCAL (SIN DESFASES) ---
       const now = new Date();
-      const currentDayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri
-      const todayStr = now.toISOString().split('T')[0];
+      const currentDayOfWeek = now.getDay(); 
+      
+      // Creamos un "Hoy" a medianoche exacta para comparar fechas sin horas
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      // --- FLEXIBLE FILTERING ---
+      // --- FILTRADO FLEXIBLE Y ROBUSTO ---
       const filtered = allAssignments.filter(asig => {
-        // 1. User Match (Email contained in teacherName)
         const isMine = asig.teacherName.toLowerCase().includes(userEmail);
-        
-        // 2. Date Match (Specific day match)
-        const isToday = asig.startTime.startsWith(todayStr);
-
-        // 3. Semester Match (Day of the week match)
-        // Remove 'Z' to prevent Date() from shifting time to UTC
+  
+        // 1. Limpiamos la fecha de la asignación de cualquier ajuste de zona horaria
+        // Al quitar la 'Z', evitamos que el navegador sume o reste horas
         const asigDate = new Date(asig.startTime.replace('Z', ''));
+        
+        // 2. Comparamos el día de la semana (para semestrales)
         const isSameDayOfWeek = asigDate.getDay() === currentDayOfWeek;
+        
+        // 3. Comparamos la fecha exacta a medianoche (para clases de un solo día)
+        const asigStartDay = new Date(asigDate.getFullYear(), asigDate.getMonth(), asigDate.getDate());
+        const isTodayExact = asigStartDay.getTime() === todayStart.getTime();
 
-        return isMine && (isToday || isSameDayOfWeek);
+        return isMine && (isTodayExact || isSameDayOfWeek);
       });
 
-      // --- DATA MAPPING ---
+      // --- PROCESAMIENTO DE DATOS (EXTRACCIÓN DE HORA PURA) ---
       const processed = filtered.map(asig => {
         const lab = allLabs.find(l => l.id === asig.laboratoryId);
         
-        // Clean HH:mm extraction
-        const getH = (s: string) => s.includes('T') ? s.split('T')[1].substring(0, 5) : s.substring(0, 5);
+        // Función que corta el texto directamente para evitar el salto de 15 horas
+        const getExactH = (s: string) => {
+          if (!s) return "00:00";
+
+        // Intentamos buscar el patrón HH:mm dentro del string
+        // Esto funciona aunque el string sea "2026-01-23 06:17:00" o "2026-01-23T06:17:00Z"
+        const match = s.match(/(\d{2}:\d{2})/);
+  
+              if (match) {
+          return match[0]; // Retorna directamente "06:17"
+            }
+
+        // Si no encuentra el patrón, hacemos el recorte manual por posición
+        if (s.includes('T')) {
+          return s.split('T')[1].substring(0, 5);
+            }
+  
+        return s.substring(0, 5);
+            };
         
-        const startTimeStr = getH(asig.startTime);
-        let endTimeStr = asig.endTime ? getH(asig.endTime) : "";
+        const startTimeStr = getExactH(asig.startTime);
+        let endTimeStr = asig.endTime ? getExactH(asig.endTime) : "";
         
-        if (!endTimeStr) {
+        // Si no hay hora de fin, calculamos +1 hora
+        if (!endTimeStr || endTimeStr === "00:00") {
           const [h, m] = startTimeStr.split(':').map(Number);
           endTimeStr = `${String((h + 1) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         }
@@ -81,9 +103,9 @@ export const LabGrid = () => {
           location: lab?.location || "N/A",
           capacity: lab?.capacity || 25,
           subject: asig.subject,
-          startTime: startTimeStr,
-          endTime: endTimeStr,
-          date: todayStr 
+          startTime: startTimeStr, // Mostrará 06:17 exacto
+          endTime: endTimeStr,   // Mostrará 08:17 exacto
+          date: asig.startTime.split('T')[0] 
         };
       });
 

@@ -78,6 +78,30 @@ module "asg_resource" {
   bastion_security_group_id = module.bastion.security_group_id
 }
 
+module "asg_lab_status" {
+  source       = "../modules/asg"
+  env          = var.environment
+  service_name = "lab-status-service"
+  docker_image = var.docker_image_status 
+  app_port     = 8081
+  
+  database_url = "" 
+
+  instance_type    = var.instance_type
+  key_name         = var.key_name
+  desired_capacity = 1
+  
+ 
+  min_size         = 1
+  max_size         = 2
+  vpc_id                    = module.vpc.vpc_id
+  private_subnets           = module.vpc.private_subnets
+  alb_security_group_id     = module.alb.security_group_id
+  alb_target_group          = module.alb.lab_status_target_group_arn 
+  bastion_security_group_id = module.bastion.security_group_id
+}
+
+
 # 3. Base de Datos Centralizada (RDS) - 
 module "database" {
   source                    = "../modules/rds"

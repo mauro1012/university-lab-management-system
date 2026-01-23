@@ -17,3 +17,7 @@ output "security_group_id" {
   description = "ID del Security Group del ALB"
   value       = aws_security_group.alb.id
 }
+
+output "lab_status_target_group_arn" {
+  value = aws_lb_target_group.lab_status.arn
+}

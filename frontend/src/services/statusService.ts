@@ -44,21 +44,18 @@ export const statusService = {
   },
 
   // 3. Terminar Clase (Check-out)
-checkOutLab: async (labId: string) => {
+async checkOutLab(labId: string) {
   const token = localStorage.getItem('token');
   
-  // Usamos la misma estructura /checkout/:id que definimos en Go
   const response = await fetch(`${GO_API_URL}/checkout/${labId}`, {
-    method: 'POST',
+    method: 'POST', 
     headers: { 
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}` 
     }
-    // No necesita body, el ID va en la URL
   });
 
-  if (!response.ok) throw new Error("No se pudo liberar el laboratorio");
-
+  if (!response.ok) throw new Error("Could not release lab");
   return { success: true };
 }
 };

@@ -12,6 +12,14 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "Allow Go Microservice"
+    from_port   = 8081
+    to_port     = 8081
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0
@@ -79,7 +87,24 @@ resource "aws_lb_target_group" "resource" {
   }
 }
 
-# 5. Listener principal
+# 5.Target Group para Lab Status (Go)
+resource "aws_lb_target_group" "lab_status" {
+  name     = "${var.env}-lab-status-tg"
+  port     = 8081
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+
+  health_check {
+    path                = "/health" # Asegúrate de que tu Go tenga esta ruta o usa "/"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+  }
+}
+
+
+# 6. Listener principal
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
@@ -92,6 +117,18 @@ resource "aws_lb_listener" "http" {
       message_body = "404: Not Found - No service mapped"
       status_code  = "404"
     }
+  }
+}
+
+# Nuevo Listener específico para el puerto 8081
+resource "aws_lb_listener" "go_microservice" {
+  load_balancer_arn = aws_lb.this.arn
+  port              = 8081
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.lab_status.arn
   }
 }
 

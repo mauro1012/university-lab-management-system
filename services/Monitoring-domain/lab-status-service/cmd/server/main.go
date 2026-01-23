@@ -16,7 +16,7 @@ func main() {
 	// --- AGREGAR ESTO PARA EL CORS ---
     r.Use(func(c *gin.Context) {
         c.Writer.Header().Set("Access-Control-Allow-Origin", "*") // En producción usa tu URL de Vercel
-        c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PATCH")
+        c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PATCH, DELETE")
         c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
         if c.Request.Method == "OPTIONS" {
             c.AbortWithStatus(204)
