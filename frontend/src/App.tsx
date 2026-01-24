@@ -7,6 +7,7 @@ import Profile from './pages/profile/Profile';
 import LaboratoryManagement from './pages/laboratories/LaboratoryManagement';
 import AssignmentManagement from './pages/assignments/AssignmentManagement';
 import MonitoringPage from './pages/monitoring/MonitoringPage'; 
+import { PublicView } from './pages/public-board/publicVista';
 
 interface RouteProps {
   children: React.ReactNode;
@@ -42,7 +43,12 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Rutas Públicas */}
+                    {/* Rutas Públicas */}
+                    
+        {/* Ruta Pública para Estudiantes */}
+        <Route path="/public-board" element={<PublicView />} />
+
+        {/* Rutas Públicas login*/}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
         {/* --- RUTAS PARA AMBOS (ADMIN Y TEACHER) --- */}

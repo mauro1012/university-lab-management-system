@@ -5,10 +5,19 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
+// rutas dinamicas y publicas
+
 @Controller('assignments')
 export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}
 
+  @Get('public/today')
+  async getPublicAssignments() {
+  return this.assignmentsService.findTodayPublic();
+  }
+
+
+// rutas privadas 
   @Post()
   @Roles('ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,6 +31,8 @@ export class AssignmentsController {
   findAll() {
     return this.assignmentsService.findAll();
   }
+
+  // rutas con parametros (:id)
 
   @Patch(':id')
   @Roles('ADMIN')

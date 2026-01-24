@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Calendar, Plus, User, Beaker, X, Trash2, Edit3, Clock, BookOpen, Filter, Search, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, Plus, User, Beaker, X, Trash2, Edit3, Clock, BookOpen, Filter, Search, CheckCircle, AlertCircle, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import resourceApi, { getLaboratories, getAssignments, createAssignment, deleteAssignment } from '../../api/resource.api';
 import { getUsers } from '../../api/auth.api';
 
@@ -38,6 +38,13 @@ const AssignmentManagement = () => {
   const [filterType, setFilterType] = useState('all');
   const [conflictCheck, setConflictCheck] = useState<{hasConflict: boolean, conflicts: Assignment[]}>({hasConflict: false, conflicts: []});
   
+  // Estado para el calendario
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [isStartMonth, setIsStartMonth] = useState(true);
+
   const [formData, setFormData] = useState({
     subject: '',
     laboratoryId: '', 
@@ -56,6 +63,12 @@ const AssignmentManagement = () => {
     { id: 'MONDAY', label: 'Mon' }, { id: 'TUESDAY', label: 'Tue' },
     { id: 'WEDNESDAY', label: 'Wed' }, { id: 'THURSDAY', label: 'Thu' },
     { id: 'FRIDAY', label: 'Fri' }, { id: 'SATURDAY', label: 'Sat' }
+  ];
+
+  // Meses para el calendario
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
   const showNotification = (type: 'success' | 'error', message: string) => {
@@ -160,6 +173,8 @@ const AssignmentManagement = () => {
       daysOfWeek: []
     });
     setConflictCheck({hasConflict: false, conflicts: []});
+    setShowCalendar(false);
+    setSelectedDate('');
   };
 
   // Función para convertir UTC a hora de Ecuador
@@ -526,7 +541,55 @@ const AssignmentManagement = () => {
     });
   };
 
-  // Calculate statistics
+  // Funciones para el calendario
+  const openCalendar = (isStart: boolean) => {
+    setIsStartMonth(isStart);
+    setShowCalendar(true);
+    const currentDate = isStart && formData.startMonthYear 
+      ? new Date(formData.startMonthYear + '-01')
+      : !isStart && formData.endMonthYear
+      ? new Date(formData.endMonthYear + '-01')
+      : new Date();
+    
+    setCurrentMonth(currentDate.getMonth());
+    setCurrentYear(currentDate.getFullYear());
+  };
+
+  const changeMonth = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      if (currentMonth === 0) {
+        setCurrentMonth(11);
+        setCurrentYear(currentYear - 1);
+      } else {
+        setCurrentMonth(currentMonth - 1);
+      }
+    } else {
+      if (currentMonth === 11) {
+        setCurrentMonth(0);
+        setCurrentYear(currentYear + 1);
+      } else {
+        setCurrentMonth(currentMonth + 1);
+      }
+    }
+  };
+
+  const selectMonth = (monthIndex: number) => {
+    const yearMonth = `${currentYear}-${(monthIndex + 1).toString().padStart(2, '0')}`;
+    if (isStartMonth) {
+      setFormData({...formData, startMonthYear: yearMonth});
+    } else {
+      setFormData({...formData, endMonthYear: yearMonth});
+    }
+    setShowCalendar(false);
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentMonth(today.getMonth());
+    setCurrentYear(today.getFullYear());
+  };
+
+  // Calcular estadísticas
   const totalAssignments = assignments.length;
   const recurringAssignments = assignments.filter(a => a.isRecurring).length;
   const singleAssignments = assignments.filter(a => !a.isRecurring).length;
@@ -965,23 +1028,41 @@ const AssignmentManagement = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Start Month *</label>
-                      <input 
-                        type="month" 
-                        required 
-                        value={formData.startMonthYear}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        onChange={(e) => setFormData({...formData, startMonthYear: e.target.value})}
-                      />
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          required 
+                          readOnly
+                          value={formData.startMonthYear ? `${months[parseInt(formData.startMonthYear.split('-')[1]) - 1]} ${formData.startMonthYear.split('-')[0]}` : ''}
+                          placeholder="Select start month"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
+                          onClick={() => openCalendar(true)}
+                        />
+                        <Calendar 
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer" 
+                          size={20} 
+                          onClick={() => openCalendar(true)}
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">End Month *</label>
-                      <input 
-                        type="month" 
-                        required 
-                        value={formData.endMonthYear}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        onChange={(e) => setFormData({...formData, endMonthYear: e.target.value})}
-                      />
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          required 
+                          readOnly
+                          value={formData.endMonthYear ? `${months[parseInt(formData.endMonthYear.split('-')[1]) - 1]} ${formData.endMonthYear.split('-')[0]}` : ''}
+                          placeholder="Select end month"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
+                          onClick={() => openCalendar(false)}
+                        />
+                        <Calendar 
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer" 
+                          size={20} 
+                          onClick={() => openCalendar(false)}
+                        />
+                      </div>
                     </div>
                   </div>
                   
@@ -1050,6 +1131,99 @@ const AssignmentManagement = () => {
                 </p>
               )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar Modal */}
+      {showCalendar && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Select {isStartMonth ? 'Start' : 'End'} Month
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Choose month and year for the schedule
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowCalendar(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {/* Calendar Header */}
+              <div className="flex items-center justify-between mb-6">
+                <button 
+                  onClick={() => changeMonth('prev')}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                
+                <div className="flex items-center gap-4">
+                  <h3 className="text-lg font-bold text-gray-900">{months[currentMonth]}</h3>
+                  <select 
+                    value={currentYear}
+                    onChange={(e) => setCurrentYear(parseInt(e.target.value))}
+                    className="bg-gray-50 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {Array.from({length: 10}, (_, i) => {
+                      const year = new Date().getFullYear() - 2 + i;
+                      return (
+                        <option key={year} value={year}>{year}</option>
+                      );
+                    })}
+                  </select>
+                </div>
+                
+                <button 
+                  onClick={() => changeMonth('next')}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+              
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {months.map((month, index) => (
+                  <button
+                    key={month}
+                    onClick={() => selectMonth(index)}
+                    className={`p-4 rounded-xl text-center transition-all ${index === currentMonth ? 'bg-blue-100 text-blue-600 font-bold border-2 border-blue-200' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}`}
+                  >
+                    <div className="text-sm font-medium">{month.substring(0, 3)}</div>
+                    <div className="text-xs text-gray-500 mt-1">{currentYear}</div>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Quick Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={goToToday}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-medium transition-colors"
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => {
+                    const currentDate = new Date();
+                    selectMonth(currentDate.getMonth());
+                    setCurrentYear(currentDate.getFullYear());
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition-colors"
+                >
+                  Select Current Month
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

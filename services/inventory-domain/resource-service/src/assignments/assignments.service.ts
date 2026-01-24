@@ -103,4 +103,35 @@ export class AssignmentsService {
     if (!existing) throw new NotFoundException('Asignación no encontrada');
     return this.prisma.assignment.delete({ where: { id } });
   }
+
+  async findTodayPublic() {
+    // Traemos todas las asignaciones incluyendo los datos del laboratorio
+    return this.prisma.assignment.findMany({
+      select: {
+        id: true,
+        subject: true,
+        teacherName: true,
+        startTime: true,
+        endTime: true,
+        laboratoryId: true,
+        isRecurring: true,
+        daysOfWeek: true,
+    // Incluimos solo los campos necesarios del laboratorio
+        laboratory: {
+          select: {
+            name: true,
+            location: true,
+            capacity: true,
+        },
+      },
+    },
+    orderBy: {
+      startTime: 'asc', // Ordenamos para que las clases de la mañana salgan primero
+    },
+  });
+}
+
+  
+
+  
 }
