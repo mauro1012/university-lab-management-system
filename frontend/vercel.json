@@ -1,8 +1,26 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api-backend/:path*",
+      "destination": "http://qa-alb-1176272014.us-east-1.elb.amazonaws.com/:path*"
+    },
+    {
+      "source": "/api-status/:path*",
+      "destination": "http://qa-alb-1176272014.us-east-1.elb.amazonaws.com:8081/:path*"
+    },
+    {
+      "source": "/((?!api-backend|api-status).*)",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api-backend/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" }
+      ]
     }
   ]
 }
