@@ -43,12 +43,11 @@ resource "aws_launch_template" "this" {
 
   vpc_security_group_ids = [aws_security_group.asg.id]
 
-  # SOLUCIÓN AL ERROR DE ESPACIO: Aumentamos a 20GB
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size = 20
-      volume_type = "gp3"
+      volume_size           = 20
+      volume_type           = "gp3"
       delete_on_termination = true
     }
   }
@@ -83,9 +82,12 @@ echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
-mkdir -p /app && cd /app
+# Crear carpeta de la app y entrar en ella
+mkdir -p /home/ec2-user/app
+cd /home/ec2-user/app
 
 if [ "$SERVICE" == "lab-status-service" ]; then
+  echo "Generando docker-compose.yml para $SERVICE..."
   cat <<EOC > docker-compose.yml
 version: '3.8'
 services:
@@ -101,10 +103,10 @@ services:
     container_name: lab-status-service
     restart: always
     ports:
-      - "$PORT:8080"  
+      - "$PORT:8080"
     environment:
       - REDIS_ADDR=lab-redis:6379
-      - PORT=8080     
+      - PORT=8080
     depends_on:
       - lab-redis
     networks:
@@ -116,8 +118,7 @@ networks:
 EOC
   /usr/local/bin/docker-compose up -d
 else
-  /usr/local/bin/docker-compose up -d
-else
+  echo "Iniciando contenedor simple para $SERVICE..."
   # Pull y ejecución para Auth y Resource
   docker pull $IMAGE
   docker stop $SERVICE || true
