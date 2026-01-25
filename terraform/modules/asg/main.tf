@@ -52,6 +52,8 @@ IMAGE="${var.docker_image}"
 PORT="${var.app_port}"
 DB_URL="${var.database_url}"
 SERVICE="${var.service_name}"
+DOCKER_USER="${var.docker_username}"
+DOCKER_PASS="${var.docker_password}"
 
 # Instalación de Docker
 yum update -y
@@ -60,14 +62,15 @@ systemctl enable docker
 systemctl start docker
 usermod -aG docker ec2-user
 
-# Instalación de Docker Compose (Necesario para el servicio de monitoreo)
+# Autenticación en Docker Hub (Vital para repos privados)
+echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+# Instalación de Docker Compose
 curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
 mkdir -p /app && cd /app
 
-# LÓGICA CONDICIONAL: 
-# Si el servicio es lab-status-service, usamos Docker Compose para incluir Redis.
 if [ "$SERVICE" == "lab-status-service" ]; then
   cat <<EOC > docker-compose.yml
 version: '3.8'
@@ -76,30 +79,23 @@ services:
     image: redis:7-alpine
     container_name: lab-redis
     restart: always
-    networks:
-      - lab-network
-
   lab-status-service:
     image: $IMAGE
     container_name: lab-status-service
     restart: always
     ports:
-      - "$PORT:8080"
+      - "$PORT:$PORT"
     environment:
       - REDIS_ADDR=lab-redis:6379
-    depends_on:
-      - lab-redis
-    networks:
-      - lab-network
-
-networks:
-  lab-network:
-    driver: bridge
+      - PORT=$PORT
 EOC
   /usr/local/bin/docker-compose up -d
 else
-  # Para los demás servicios (Auth, Resource) usamos el docker run tradicional
+  # Limpieza por si quedó algún contenedor colgado (como hacías en el viejo)
   docker pull $IMAGE
+  docker stop $SERVICE || true
+  docker rm $SERVICE || true
+  
   docker run -d \
     --name $SERVICE \
     -p $PORT:$PORT \
@@ -108,6 +104,7 @@ else
     -e DATABASE_URL="$DB_URL" \
     -e JWT_SECRET="temp-secret" \
     $IMAGE
+fi
 fi
 EOF
   )
