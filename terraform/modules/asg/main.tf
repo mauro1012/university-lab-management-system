@@ -34,7 +34,7 @@ resource "aws_security_group" "asg" {
   tags = { Name = "${var.env}-${var.service_name}-asg-sg" }
 }
 
-# 2. Launch Template con Lógica Condicional para Docker Compose
+# 2. Launch Template con Disco de 20GB y Login de Docker
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.env}-${var.service_name}-lt-"
   image_id      = data.aws_ami.amazon_linux.id
@@ -43,8 +43,20 @@ resource "aws_launch_template" "this" {
 
   vpc_security_group_ids = [aws_security_group.asg.id]
 
+  # SOLUCIÓN AL ERROR DE ESPACIO: Aumentamos a 20GB
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size = 20
+      volume_type = "gp3"
+      delete_on_termination = true
+    }
+  }
+
   user_data = base64encode(<<EOF
 #!/bin/bash
+# Redirigir salida a log para debug
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 set -e
 
 # Variables inyectadas por Terraform
@@ -55,6 +67,8 @@ SERVICE="${var.service_name}"
 DOCKER_USER="${var.docker_username}"
 DOCKER_PASS="${var.docker_password}"
 
+echo "Iniciando despliegue para $SERVICE..."
+
 # Instalación de Docker
 yum update -y
 yum install -y docker
@@ -62,7 +76,7 @@ systemctl enable docker
 systemctl start docker
 usermod -aG docker ec2-user
 
-# Autenticación en Docker Hub (Vital para repos privados)
+# Autenticación en Docker Hub
 echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
 # Instalación de Docker Compose
@@ -91,7 +105,7 @@ services:
 EOC
   /usr/local/bin/docker-compose up -d
 else
-  # Limpieza por si quedó algún contenedor colgado (como hacías en el viejo)
+  # Pull y ejecución para Auth y Resource
   docker pull $IMAGE
   docker stop $SERVICE || true
   docker rm $SERVICE || true
@@ -104,7 +118,6 @@ else
     -e DATABASE_URL="$DB_URL" \
     -e JWT_SECRET="temp-secret" \
     $IMAGE
-fi
 fi
 EOF
   )
