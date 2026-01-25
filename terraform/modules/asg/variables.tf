@@ -80,3 +80,15 @@ variable "bastion_security_group_id" {
   description = "Security Group del Bastion para permitir SSH"
   type        = string
 }
+
+# --- Variables de Autenticación Docker 
+variable "docker_username" {
+  description = "Usuario de Docker Hub"
+  type        = string
+}
+
+variable "docker_password" {
+  description = "Token o Password de Docker Hub"
+  type        = string
+  sensitive   = true # Esto oculta el valor en los logs de Terraform
+}

@@ -89,6 +89,8 @@ jobs:
           TF_VAR_db_name: ${{ secrets.DB_NAME }}
           TF_VAR_db_user: ${{ secrets.DB_USER }}
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_docker_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          TF_VAR_docker_password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # 6. Configurar llave SSH para Túneles
       - name: Setup SSH Key
