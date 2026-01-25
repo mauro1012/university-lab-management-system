@@ -55,3 +55,13 @@ variable "docker_image_status" {
   type        = string
   description = "URL de la imagen de Docker para el microservicio de Go (Lab Status)"
 }
+
+variable "docker_username" {
+  type      = string
+  sensitive = true
+}
+
+variable "docker_password" {
+  type      = string
+  sensitive = true
+}
