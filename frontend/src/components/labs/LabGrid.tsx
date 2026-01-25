@@ -19,7 +19,13 @@ export const LabGrid = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const baseUrl = import.meta.env.VITE_RESOURCE_API_URL || "http://localhost:3001/resource";
+      
+      // DNS DEL ALB (Backup definitivo)
+      const ALB_DNS = "http://qa-alb-1176272014.us-east-1.elb.amazonaws.com/resource";
+
+      // CORRECCIÓN: Ajustamos el nombre para que coincida con Vercel (VITE_API_RESOURCE_URL)
+      // Y el fallback ahora apunta a AWS, nunca a localhost.
+      const baseUrl = import.meta.env.VITE_API_RESOURCE_URL || ALB_DNS;
 
       const [labsRes, assignRes] = await Promise.all([
         fetch(`${baseUrl}/laboratories`, { headers: { 'Authorization': 'Bearer ' + token } }),
@@ -47,7 +53,6 @@ export const LabGrid = () => {
       const processed = filtered.map((asig: any) => {
         const lab = allLabs.find((l: any) => l.id === asig.laboratoryId);
         
-        // --- CORRECCIÓN: Definimos la variable asigDateString aquí adentro ---
         const asigStartEcu = utcToEcuadorTime(new Date(asig.startTime));
         const asigDateString = asigStartEcu.toISOString().split('T')[0];
 
@@ -59,7 +64,7 @@ export const LabGrid = () => {
           subject: asig.subject,
           startTime: asig.startTime, 
           endTime: asig.endTime,     
-          date: asigDateString // Ahora la variable ya está definida
+          date: asigDateString 
         };
       });
 
