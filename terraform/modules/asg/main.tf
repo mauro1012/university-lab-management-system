@@ -93,16 +93,29 @@ services:
     image: redis:7-alpine
     container_name: lab-redis
     restart: always
+    networks:
+      - lab-network
+
   lab-status-service:
     image: $IMAGE
     container_name: lab-status-service
     restart: always
     ports:
-      - "$PORT:$PORT"
+      - "$PORT:8080"  
     environment:
       - REDIS_ADDR=lab-redis:6379
-      - PORT=$PORT
+      - PORT=8080     
+    depends_on:
+      - lab-redis
+    networks:
+      - lab-network
+
+networks:
+  lab-network:
+    driver: bridge
 EOC
+  /usr/local/bin/docker-compose up -d
+else
   /usr/local/bin/docker-compose up -d
 else
   # Pull y ejecución para Auth y Resource
