@@ -32,7 +32,7 @@ module "alb" {
   public_subnets = module.vpc.public_subnets
 }
 
-# 4. Microservicios (ASG) -obtenemos sus IDs de Seguridad
+# 4. Microservicios (ASG)
 module "asg_auth" {
   source       = "../modules/asg"
   env          = var.environment
@@ -40,7 +40,10 @@ module "asg_auth" {
   docker_image = var.docker_image_auth
   app_port     = 3000
   
-  # Usamos rds_endpoint que se definio en los outputs
+  # Credenciales de Docker Hub (PASO CRÍTICO)
+  docker_username = var.docker_username
+  docker_password = var.docker_password
+  
   database_url = "postgresql://${var.db_user}:${var.db_password}@${module.database.rds_endpoint}/${var.db_name}"
   
   instance_type    = var.instance_type
@@ -62,6 +65,10 @@ module "asg_resource" {
   service_name = "resource-service"
   docker_image = var.docker_image_resource
   app_port     = 3001
+  
+  # Credenciales de Docker Hub (PASO CRÍTICO)
+  docker_username = var.docker_username
+  docker_password = var.docker_password
   
   database_url = "postgresql://${var.db_user}:${var.db_password}@${module.database.rds_endpoint}/${var.db_name}"
 
@@ -85,15 +92,18 @@ module "asg_lab_status" {
   docker_image = var.docker_image_status 
   app_port     = 8081
   
+  # Credenciales de Docker Hub (PASO CRÍTICO)
+  docker_username = var.docker_username
+  docker_password = var.docker_password
+  
   database_url = "" 
 
   instance_type    = var.instance_type
   key_name         = var.key_name
   desired_capacity = 1
-  
- 
   min_size         = 1
   max_size         = 2
+
   vpc_id                    = module.vpc.vpc_id
   private_subnets           = module.vpc.private_subnets
   alb_security_group_id     = module.alb.security_group_id
@@ -101,15 +111,13 @@ module "asg_lab_status" {
   bastion_security_group_id = module.bastion.security_group_id
 }
 
-
-# 3. Base de Datos Centralizada (RDS) - 
+# 3. Base de Datos Centralizada (RDS)
 module "database" {
   source                    = "../modules/rds"
   env                       = var.environment
   vpc_id                    = module.vpc.vpc_id
   private_subnets           = module.vpc.private_subnets
   
-  # Usamos el SG de las instancias (asg_auth), NO del ALB
   asg_security_group_ids    = [
     module.asg_auth.asg_security_group_id,
     module.asg_resource.asg_security_group_id
